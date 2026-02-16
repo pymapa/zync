@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Backend API server with SQLite
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:5173
+      # These should be set via .env file or environment
+      - STRAVA_CLIENT_ID=${STRAVA_CLIENT_ID}
+      - STRAVA_CLIENT_SECRET=${STRAVA_CLIENT_SECRET}
+      - COOKIE_SECRET=${COOKIE_SECRET}
+    volumes:
+      # Persist SQLite database
+      - sqlite-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend (development mode)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001/api
+    depends_on:
+      server:
+        condition: service_healthy
+    profiles:
+      - full  # Only start when using: docker compose --profile full up
+
+volumes:
+  sqlite-data:
+    driver: local

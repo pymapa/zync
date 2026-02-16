@@ -10,12 +10,28 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+
+# Environment variables
+.env
+.env.local
+server/.env
+server/.env.local
+
+# SQLite database files
+data/
+server/data/*.db
+server/data/*.db-wal
+server/data/*.db-shm
+!server/data/.gitkeep
+
+# MCP config
+.mcp.json
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+.claude
 .DS_Store
 *.suo
 *.ntvs*

@@ -5,19 +5,31 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "cd server && npm run dev",
     "build": "tsc -b && vite build",
+    "build:server": "cd server && npm run build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc -b --noEmit",
+    "typecheck:server": "cd server && npm run typecheck",
+    "generate:types": "openapi-typescript ./server/src/openapi.yaml -o ./src/types/api.generated.ts"
   },
   "vitest": {
     "environment": "jsdom"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.19",
+    "@types/leaflet": "^1.9.21",
+    "axios": "^1.13.2",
+    "leaflet": "^1.9.4",
+    "polyline-encoded": "^0.0.9",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.4"
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.9.4",
+    "recharts": "^3.7.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -31,6 +43,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
+    "openapi-typescript": "^7.10.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.9.3",
