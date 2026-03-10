@@ -25,8 +25,6 @@ function startServer(): void {
         frontendUrl: config.frontend.url,
       });
 
-      // Start webhook processor after server is listening
-      services.webhookProcessor.start();
     });
 
     // Graceful shutdown
@@ -39,8 +37,6 @@ function startServer(): void {
 
         // Cleanup application resources
         try {
-          // Stop webhook processor first (may take time to finish current work)
-          await services.webhookProcessor.stop();
           services.sessionStore.shutdown();
           services.cache.shutdown();
           closeDatabase();

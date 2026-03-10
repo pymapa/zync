@@ -16,8 +16,6 @@ const configSchema = z.object({
     authorizationUrl: z.string().url().default('https://www.strava.com/oauth/authorize'),
     tokenUrl: z.string().url().default('https://www.strava.com/oauth/token'),
     apiBaseUrl: z.string().url().default('https://www.strava.com/api/v3'),
-    webhookVerifyToken: z.string().min(1, 'STRAVA_WEBHOOK_VERIFY_TOKEN is required'),
-    webhookSubscriptionId: z.coerce.number().int().positive().optional(),
   }),
   frontend: z.object({
     url: z.string().url(),
@@ -52,8 +50,6 @@ function loadConfig(): Config {
         authorizationUrl: process.env.STRAVA_AUTHORIZATION_URL,
         tokenUrl: process.env.STRAVA_TOKEN_URL,
         apiBaseUrl: process.env.STRAVA_API_BASE_URL,
-        webhookVerifyToken: process.env.STRAVA_WEBHOOK_VERIFY_TOKEN,
-        webhookSubscriptionId: process.env.STRAVA_WEBHOOK_SUBSCRIPTION_ID,
       },
       frontend: {
         url: process.env.FRONTEND_URL,

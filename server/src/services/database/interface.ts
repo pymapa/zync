@@ -18,10 +18,6 @@ import type {
   DailyActivityStats,
   ActivityStreaks,
 } from './types';
-import type {
-  StoredWebhookEvent,
-  WebhookEventInput,
-} from '../../types/webhook';
 
 export interface IDatabase {
   /**
@@ -99,60 +95,4 @@ export interface IDatabase {
    */
   resetStuckSync(userId: number, timeoutMs?: number): boolean;
 
-  // Webhook event operations
-  /**
-   * Store a webhook event from Strava
-   * @param event - Webhook event data
-   * @returns The ID of the created event
-   */
-  createWebhookEvent(event: WebhookEventInput): number;
-
-  /**
-   * Get unprocessed webhook events
-   * @param limit - Maximum number of events to retrieve
-   * @returns Array of unprocessed webhook events
-   */
-  getUnprocessedWebhookEvents(limit?: number): StoredWebhookEvent[];
-
-  /**
-   * Mark a webhook event as processed
-   * @param eventId - ID of the webhook event
-   * @param errorMessage - Optional error message if processing failed
-   */
-  markWebhookEventProcessed(eventId: number, errorMessage?: string): void;
-
-  /**
-   * Get webhook events for a specific activity
-   * @param ownerId - Strava athlete ID
-   * @param activityId - Activity ID
-   * @returns Array of webhook events for this activity
-   */
-  getWebhookEventsByActivity(
-    ownerId: number,
-    activityId: number
-  ): StoredWebhookEvent[];
-
-  /**
-   * Delete old processed webhook events
-   * @param olderThanSeconds - Delete events older than this many seconds (default 30 days)
-   * @returns Number of deleted events
-   */
-  cleanupOldWebhookEvents(olderThanSeconds?: number): number;
-
-  /**
-   * Retry a failed webhook event
-   * Resets status to 'pending' and increments retry count
-   * @param eventId - ID of the webhook event to retry
-   * @param maxRetries - Maximum number of retries allowed (default 3)
-   * @returns true if event was reset for retry, false if max retries exceeded
-   */
-  retryWebhookEvent(eventId: number, maxRetries?: number): boolean;
-
-  /**
-   * Reset stuck webhook events that have been in 'processing' state too long
-   * This handles cases where a worker crashed or timed out
-   * @param timeoutSeconds - Events in 'processing' longer than this are reset (default 300s = 5min)
-   * @returns Number of events reset
-   */
-  resetStuckWebhookEvents(timeoutSeconds?: number): number;
 }

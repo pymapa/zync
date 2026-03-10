@@ -9,17 +9,15 @@ import cookieParser from 'cookie-parser';
 import { config } from './config';
 import { SessionStore } from './services/session/store';
 import { LRUCache } from './services/cache/cache';
-import { initDatabase, getDatabase } from './services/database/index';
+import { initDatabase } from './services/database/index';
 import { corsMiddleware } from './middleware/cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { createApiRouter } from './routes';
 import { logger } from './utils/logger';
-import { WebhookProcessor } from './workers/webhook-processor';
 
 export interface AppServices {
   sessionStore: SessionStore;
   cache: LRUCache<unknown>;
-  webhookProcessor: WebhookProcessor;
 }
 
 export function createApp(): { app: Express; services: AppServices } {
@@ -43,16 +41,6 @@ export function createApp(): { app: Express; services: AppServices } {
   // Initialize database
   initDatabase();
   logger.info('Database initialized successfully');
-
-  // Initialize webhook processor
-  const webhookProcessor = new WebhookProcessor({
-    database: getDatabase(),
-    sessionStore,
-    pollIntervalMs: 5000, // Poll every 5 seconds
-    batchSize: 10, // Process up to 10 events per batch
-    maxRetries: 3, // Retry failed events up to 3 times
-    processingTimeoutSeconds: 300, // Reset stuck events after 5 minutes
-  });
 
   // Security middleware
   app.use(
@@ -95,7 +83,7 @@ export function createApp(): { app: Express; services: AppServices } {
   });
 
   // Mount API routes
-  app.use('/api', createApiRouter(sessionStore, cache, webhookProcessor));
+  app.use('/api', createApiRouter(sessionStore, cache));
 
   // 404 handler
   app.use(notFoundHandler);
@@ -110,7 +98,6 @@ export function createApp(): { app: Express; services: AppServices } {
     services: {
       sessionStore,
       cache,
-      webhookProcessor,
     },
   };
 }
