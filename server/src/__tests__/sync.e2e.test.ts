@@ -148,18 +148,12 @@ describe('Sync API E2E Tests', () => {
       Date.now() + 3600000, // expires in 1 hour
       {
         id: TEST_USER_ID,
-        username: 'testuser',
-        firstname: 'Test',
-        lastname: 'User',
+        firstName: 'Test',
+        lastName: 'User',
+        profileUrl: 'https://example.com/profile.jpg',
         city: null,
         state: null,
         country: null,
-        sex: null,
-        summit: false,
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-        profile_medium: null,
-        profile: null,
       }
     );
     testSessionId = session.id;
@@ -311,8 +305,8 @@ describe('Sync API E2E Tests', () => {
       const db = getDatabase();
       const storedActivities = db.searchActivities({ userId: TEST_USER_ID, limit: 10 });
       expect(storedActivities).toHaveLength(2);
-      expect(storedActivities[0].name).toBe('Morning Run');
-      expect(storedActivities[1].name).toBe('Evening Ride');
+      expect(storedActivities[0]!.name).toBe('Morning Run');
+      expect(storedActivities[1]!.name).toBe('Evening Ride');
     });
   });
 
