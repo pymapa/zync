@@ -54,5 +54,11 @@ export function createActivitiesRouter(
    */
   router.get('/:id/streams', activitiesController.getStreams);
 
+  /**
+   * GET /api/activities/:id/photos
+   * Get all photos for an activity from Strava
+   */
+  router.get('/:id/photos', activitiesController.getPhotos);
+
   return router;
 }

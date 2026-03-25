@@ -182,6 +182,9 @@ components:
         - Workout
         - WeightTraining
         - Yoga
+        - Snowboard
+        - Crossfit
+        - Kayaking
         - Other
 
     Activity:
@@ -310,6 +313,34 @@ components:
               nullable: true
               items:
                 $ref: '#/components/schemas/Split'
+            bestEfforts:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/BestEffort'
+            segmentEfforts:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/SegmentEffort'
+            photos:
+              $ref: '#/components/schemas/PhotosSummary'
+            elevHigh:
+              type: number
+              nullable: true
+              description: Highest elevation point in meters
+            elevLow:
+              type: number
+              nullable: true
+              description: Lowest elevation point in meters
+            kilojoules:
+              type: number
+              nullable: true
+              description: Total energy output in kilojoules
+            deviceName:
+              type: string
+              nullable: true
+              description: Name of the recording device
 
     Lap:
       type: object
@@ -375,6 +406,77 @@ components:
         paceZone:
           type: integer
           nullable: true
+
+    BestEffort:
+      type: object
+      required:
+        - name
+        - distanceMeters
+        - elapsedTimeSeconds
+        - movingTimeSeconds
+      properties:
+        name:
+          type: string
+          description: "Standard distance name (e.g., 400m, 1K, 1 mile, 5K)"
+        distanceMeters:
+          type: number
+        elapsedTimeSeconds:
+          type: integer
+        movingTimeSeconds:
+          type: integer
+        prRank:
+          type: integer
+          nullable: true
+          description: "Personal record rank (1 = current PR, null = not a PR)"
+
+    SegmentEffort:
+      type: object
+      required:
+        - name
+        - distanceMeters
+        - elapsedTimeSeconds
+        - movingTimeSeconds
+      properties:
+        name:
+          type: string
+          description: Strava segment name
+        distanceMeters:
+          type: number
+        elapsedTimeSeconds:
+          type: integer
+        movingTimeSeconds:
+          type: integer
+        averageHeartRate:
+          type: number
+          nullable: true
+        prRank:
+          type: integer
+          nullable: true
+          description: "Personal record rank on this segment"
+
+    PhotosSummary:
+      type: object
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          description: Total number of photos on this activity
+        primary:
+          type: object
+          nullable: true
+          properties:
+            uniqueId:
+              type: string
+            url100:
+              type: string
+              description: 100px thumbnail URL
+            url600:
+              type: string
+              description: 600px image URL
+            mediaType:
+              type: integer
+              description: "1 = photo, 2 = video"
 
     User:
       type: object

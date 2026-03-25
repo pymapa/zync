@@ -3,7 +3,7 @@
  */
 
 import { StravaClient } from './client';
-import { StravaActivity, StravaDetailedActivity, StravaStreamsResponse } from './types';
+import { StravaActivity, StravaDetailedActivity, StravaStreamsResponse, StravaActivityPhoto } from './types';
 import { logger } from '../../utils/logger';
 import { ValidationError } from '../../utils/errors';
 
@@ -90,6 +90,33 @@ export async function getActivityById(
   });
 
   return activity;
+}
+
+/**
+ * Fetch photos for an activity
+ */
+export async function getActivityPhotos(
+  client: StravaClient,
+  activityId: number,
+  size: number = 600
+): Promise<StravaActivityPhoto[]> {
+  if (!Number.isInteger(activityId) || activityId <= 0) {
+    throw new ValidationError('Activity ID must be a positive integer');
+  }
+
+  logger.debug('Fetching activity photos', { activityId, size });
+
+  const photos = await client.get<StravaActivityPhoto[]>(
+    `/activities/${activityId}/photos`,
+    { size, photo_sources: true }
+  );
+
+  logger.info('Activity photos fetched successfully', {
+    activityId,
+    count: photos.length,
+  });
+
+  return photos;
 }
 
 const DEFAULT_STREAM_TYPES = ['time', 'heartrate', 'velocity_smooth', 'altitude', 'watts'];

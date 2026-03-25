@@ -5,8 +5,8 @@
  * All other code uses application types from ./index.ts
  */
 
-import type { Activity, ActivityType, User, DetailedActivity, Lap, Split } from './index';
-import type { StravaActivity, StravaAthlete, StravaDetailedActivity, Lap as StravaLap, SplitMetric } from '../services/strava/types';
+import type { Activity, ActivityType, User, DetailedActivity, Lap, Split, BestEffort, SegmentEffort } from './index';
+import type { StravaActivity, StravaAthlete, StravaDetailedActivity, Lap as StravaLap, SplitMetric, BestEffort as StravaBestEffort, SegmentEffort as StravaSegmentEffort } from '../services/strava/types';
 
 /**
  * Map Strava sport_type to application ActivityType
@@ -30,6 +30,9 @@ const ACTIVITY_TYPE_MAP: Record<string, ActivityType> = {
   Workout: 'Workout',
   WeightTraining: 'WeightTraining',
   Yoga: 'Yoga',
+  Snowboard: 'Snowboard',
+  Crossfit: 'Crossfit',
+  Kayaking: 'Kayaking',
 };
 
 /**
@@ -114,6 +117,42 @@ export function mapStravaDetailedActivity(strava: StravaDetailedActivity): Detai
       : null,
     laps: strava.laps?.map(mapStravaLap) ?? null,
     splitsMetric: strava.splits_metric?.map(mapStravaSplit) ?? null,
+    bestEfforts: strava.best_efforts?.map(mapStravaBestEffort) ?? null,
+    segmentEfforts: strava.segment_efforts?.map(mapStravaSegmentEffort) ?? null,
+    photos: strava.photos?.count > 0 || strava.photos?.primary ? {
+      count: strava.photos.count,
+      primary: strava.photos.primary ? {
+        uniqueId: strava.photos.primary.unique_id,
+        url100: strava.photos.primary.urls?.['100'],
+        url600: strava.photos.primary.urls?.['600'],
+        mediaType: strava.photos.primary.source,
+      } : null,
+    } : undefined,
+    elevHigh: null,
+    elevLow: null,
+    kilojoules: null,
+    deviceName: strava.device_name ?? null,
+  };
+}
+
+function mapStravaBestEffort(strava: StravaBestEffort): BestEffort {
+  return {
+    name: strava.name,
+    distanceMeters: strava.distance,
+    elapsedTimeSeconds: strava.elapsed_time,
+    movingTimeSeconds: strava.moving_time,
+    prRank: strava.pr_rank ?? null,
+  };
+}
+
+function mapStravaSegmentEffort(strava: StravaSegmentEffort): SegmentEffort {
+  return {
+    name: strava.name,
+    distanceMeters: strava.distance,
+    elapsedTimeSeconds: strava.elapsed_time,
+    movingTimeSeconds: strava.moving_time,
+    averageHeartRate: strava.average_heartrate ?? null,
+    prRank: strava.pr_rank ?? null,
   };
 }
 

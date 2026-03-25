@@ -6,9 +6,10 @@ import type { DetailedActivity } from '../../types';
 
 interface ActivityMapProps {
   readonly activity: DetailedActivity;
+  readonly height?: number;
 }
 
-export function ActivityMap({ activity }: ActivityMapProps) {
+export function ActivityMap({ activity, height = 350 }: ActivityMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
@@ -92,7 +93,7 @@ export function ActivityMap({ activity }: ActivityMapProps) {
       {/* Gradient overlay for depth */}
       <div className="absolute inset-0 bg-gradient-to-t from-base/40 via-transparent to-transparent pointer-events-none z-10" />
 
-      <div ref={mapRef} className="w-full h-[450px] sm:h-[500px]" />
+      <div ref={mapRef} className="w-full" style={{ height: `${height}px` }} />
 
       {/* Map label */}
       <div className="absolute bottom-4 left-4 z-20 bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border/50">

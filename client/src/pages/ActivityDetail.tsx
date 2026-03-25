@@ -2,9 +2,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useActivity } from '../hooks/useActivities';
 import { PageLoading } from '../components/ui';
 import { PageLayout } from '../components/layout';
-import { ActivityHero, ActivityStatsGrid, ActivityStreamsGraph, ActivityMap } from '../components/activity';
-import { BackArrowIcon, StravaIcon } from '../components/icons';
-import { ROUTES, EXTERNAL_URLS } from '../lib/utils/routes';
+import { ActivityDetailHeader } from '../components/activity/ActivityDetailHeader';
+import { ActivityStatsList } from '../components/activity/ActivityStatsList';
+import { ActivityMap } from '../components/activity/ActivityMap';
+import { ActivityTabs } from '../components/activity/ActivityTabs';
+import { ActivityPhotos } from '../components/activity/ActivityPhotos';
+import { isIndoorActivity } from '../lib/utils/activityTypes';
+import { ROUTES } from '../lib/utils/routes';
 
 export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
@@ -54,50 +58,43 @@ export default function ActivityDetail() {
     );
   }
 
+  const indoor = isIndoorActivity(activity.type);
+  const hasMap = !indoor && !!activity.map?.summaryPolyline;
+  const hasPhotos = (activity.photos?.count ?? 0) > 0;
+
   return (
     <PageLayout>
-      {/* Minimal header */}
-      <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 sm:px-8 py-4">
-          <button
-            onClick={() => navigate(ROUTES.DASHBOARD)}
-            className="flex items-center gap-2 text-text-secondary hover:text-accent transition-all duration-200 text-sm font-medium group"
-          >
-            <BackArrowIcon className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-            <span className="font-mono uppercase tracking-wider text-xs">Back</span>
-          </button>
+      {/* Compact header */}
+      <ActivityDetailHeader activity={activity} />
+
+      {/* Photos — always visible at top if they exist */}
+      {hasPhotos && (
+        <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-6">
+          <ActivityPhotos activity={activity} />
+        </section>
+      )}
+
+      {/* Stats + Map row */}
+      <section className="max-w-6xl mx-auto px-5 sm:px-8 py-6">
+        <div className={`grid gap-6 ${hasMap ? 'lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]' : ''}`}>
+          {/* Stats panel */}
+          <div className="bg-card rounded-xl border border-border/60 p-5">
+            <ActivityStatsList activity={activity} />
+          </div>
+
+          {/* Map */}
+          {hasMap && (
+            <div>
+              <ActivityMap activity={activity} height={380} />
+            </div>
+          )}
         </div>
-      </header>
+      </section>
 
-      {/* Hero section with primary stats */}
-      <ActivityHero activity={activity} />
-
-      {/* Content */}
-      <main className="max-w-6xl mx-auto px-6 sm:px-8 py-8 space-y-8">
-        {/* Map */}
-        {!['Workout', 'WeightTraining', 'Yoga'].includes(activity.type) && (
-          <ActivityMap activity={activity} />
-        )}
-
-        {/* Secondary stats */}
-        <ActivityStatsGrid activity={activity} />
-
-        {/* Performance chart */}
-        <ActivityStreamsGraph activity={activity} />
-
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-border/40">
-          <a
-            href={EXTERNAL_URLS.STRAVA_ACTIVITY(activity.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 px-6 py-3 bg-accent text-white text-xs font-bold font-mono uppercase tracking-wider rounded-xl hover:bg-accent-dim transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
-          >
-            <StravaIcon className="w-4 h-4" />
-            <span>View on Strava</span>
-          </a>
-        </div>
-      </main>
+      {/* Tabbed data sections */}
+      <section className="max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+        <ActivityTabs activity={activity} />
+      </section>
     </PageLayout>
   );
 }

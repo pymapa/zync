@@ -15,6 +15,7 @@ import type { Activity, ActivityType } from '../../types';
 
 interface ActivityStreamsGraphProps {
   readonly activity: Activity;
+  readonly height?: number;
 }
 
 type StreamType = 'heartrate' | 'pace' | 'altitude' | 'power';
@@ -39,7 +40,7 @@ const BASE_CONFIGS: StreamConfig[] = [
   { key: 'power',     label: 'Power',      color: '#F59E0B', unit: 'W',     yAxis: 'left'  },
 ];
 
-export function ActivityStreamsGraph({ activity }: ActivityStreamsGraphProps) {
+export function ActivityStreamsGraph({ activity, height = 300 }: ActivityStreamsGraphProps) {
   const { streams, isLoading } = useActivityStreams(String(activity.id));
   const isRide = RIDE_TYPES.includes(activity.type);
 
@@ -201,7 +202,7 @@ export function ActivityStreamsGraph({ activity }: ActivityStreamsGraphProps) {
       </div>
 
       <div className="bg-surface rounded-lg p-4">
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={height}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis

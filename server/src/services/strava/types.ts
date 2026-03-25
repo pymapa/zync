@@ -242,6 +242,20 @@ export interface Photo {
   location: [number, number] | null;
 }
 
+/** Photo returned by GET /activities/{id}/photos endpoint */
+export interface StravaActivityPhoto {
+  unique_id: string;
+  urls: Record<string, string>;
+  caption: string;
+  source: number;
+  uploaded_at: string;
+  created_at: string;
+  created_at_local: string;
+  location: [number, number] | null;
+  activity_id: number;
+  activity_name: string;
+}
+
 export interface Kudoser {
   destination_url: string;
   display_name: string;

@@ -29,5 +29,8 @@ export const ACTIVITY_ICONS: Record<string, string> = {
   Workout: '💪',
   WeightTraining: '🏋️',
   Yoga: '🧘',
+  Snowboard: '🏂',
+  Crossfit: '💪',
+  Kayaking: '🛶',
   Other: '🏃',
 };

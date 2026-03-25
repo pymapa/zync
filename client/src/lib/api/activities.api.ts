@@ -31,4 +31,16 @@ export const activitiesApi = {
     const { data } = await apiClient.get<GetActivityStreamsResponse>(`/activities/${id}/streams`);
     return data;
   },
+
+  getActivityPhotos: async (id: string): Promise<{ photos: ActivityPhoto[] }> => {
+    const { data } = await apiClient.get<{ photos: ActivityPhoto[] }>(`/activities/${id}/photos`);
+    return data;
+  },
 };
+
+export interface ActivityPhoto {
+  uniqueId: string;
+  url: string;
+  caption: string;
+  location: [number, number] | null;
+}

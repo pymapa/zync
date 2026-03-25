@@ -145,7 +145,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "Run" | "TrailRun" | "VirtualRun" | "Ride" | "MountainBikeRide" | "GravelRide" | "EBikeRide" | "VirtualRide" | "Swim" | "Walk" | "Hike" | "AlpineSki" | "BackcountrySki" | "NordicSki" | "Workout" | "WeightTraining" | "Yoga" | "Other";
+        ActivityType: "Run" | "TrailRun" | "VirtualRun" | "Ride" | "MountainBikeRide" | "GravelRide" | "EBikeRide" | "VirtualRide" | "Swim" | "Walk" | "Hike" | "AlpineSki" | "BackcountrySki" | "NordicSki" | "Workout" | "WeightTraining" | "Yoga" | "Snowboard" | "Crossfit" | "Kayaking" | "Other";
         Activity: {
             /** @description Unique activity identifier */
             id: number;
@@ -201,6 +201,17 @@ export interface components {
             } | null;
             laps?: components["schemas"]["Lap"][] | null;
             splitsMetric?: components["schemas"]["Split"][] | null;
+            bestEfforts?: components["schemas"]["BestEffort"][] | null;
+            segmentEfforts?: components["schemas"]["SegmentEffort"][] | null;
+            photos?: components["schemas"]["PhotosSummary"];
+            /** @description Highest elevation point in meters */
+            elevHigh?: number | null;
+            /** @description Lowest elevation point in meters */
+            elevLow?: number | null;
+            /** @description Total energy output in kilojoules */
+            kilojoules?: number | null;
+            /** @description Name of the recording device */
+            deviceName?: string | null;
         };
         Lap: {
             lapIndex: number;
@@ -224,6 +235,38 @@ export interface components {
             elevationDifference?: number | null;
             averageSpeed?: number | null;
             paceZone?: number | null;
+        };
+        BestEffort: {
+            /** @description Standard distance name (e.g., 400m, 1K, 1 mile, 5K) */
+            name: string;
+            distanceMeters: number;
+            elapsedTimeSeconds: number;
+            movingTimeSeconds: number;
+            /** @description Personal record rank (1 = current PR, null = not a PR) */
+            prRank?: number | null;
+        };
+        SegmentEffort: {
+            /** @description Strava segment name */
+            name: string;
+            distanceMeters: number;
+            elapsedTimeSeconds: number;
+            movingTimeSeconds: number;
+            averageHeartRate?: number | null;
+            /** @description Personal record rank on this segment */
+            prRank?: number | null;
+        };
+        PhotosSummary: {
+            /** @description Total number of photos on this activity */
+            count: number;
+            primary?: {
+                uniqueId?: string;
+                /** @description 100px thumbnail URL */
+                url100?: string;
+                /** @description 600px image URL */
+                url600?: string;
+                /** @description 1 = photo, 2 = video */
+                mediaType?: number;
+            } | null;
         };
         User: {
             /** @description Unique user identifier */
@@ -284,6 +327,10 @@ export interface components {
             currentStreak: number;
             /** @description All-time longest consecutive days with activities */
             longestStreak: number;
+            /** @description Start date of the longest streak (YYYY-MM-DD) */
+            longestStreakStart?: string | null;
+            /** @description End date of the longest streak (YYYY-MM-DD) */
+            longestStreakEnd?: string | null;
         };
         DailyStatsItem: {
             /** @description Date in YYYY-MM-DD format */

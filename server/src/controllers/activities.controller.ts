@@ -307,11 +307,41 @@ export function createActivitiesController(cache: LRUCache<unknown>) {
     }
   };
 
+  /**
+   * GET /api/activities/:id/photos
+   * Get all photos for an activity from Strava
+   */
+  const getPhotos = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.session) {
+        throw new UnauthorizedError('Authentication required');
+      }
+
+      const params = getActivityParamsSchema.parse(req.params);
+      const { userId, accessToken } = req.session;
+
+      const result = await activitiesService.getPhotos({
+        userId,
+        accessToken,
+        activityId: params.id,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   return {
     listActivities,
     getActivity,
     getStats,
     getDailyStats,
     getStreams,
+    getPhotos,
   };
 }

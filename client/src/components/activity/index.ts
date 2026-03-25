@@ -1,6 +1,9 @@
-export { ActivityHeader } from './ActivityHeader';
-export { ActivityStats } from './ActivityStats';
+export { ActivityDetailHeader } from './ActivityDetailHeader';
+export { ActivityStatsList } from './ActivityStatsList';
 export { ActivityStreamsGraph } from './ActivityStreamsGraph';
 export { ActivityMap } from './ActivityMap';
-export { ActivityHero } from './ActivityHero';
-export { ActivityStatsGrid } from './ActivityStatsGrid';
+export { ActivityTabs } from './ActivityTabs';
+export { SplitsView } from './SplitsView';
+export { LapsTable } from './LapsTable';
+export { BestEffortsTable } from './BestEffortsTable';
+export { ActivityPhotos } from './ActivityPhotos';

@@ -5,7 +5,7 @@
 
 import { LRUCache } from '../cache/cache';
 import { StravaClient } from '../strava/client';
-import { getActivities as getStravaActivities, getActivityById as getStravaActivityById, getActivityStreams as getStravaActivityStreams } from '../strava/activities';
+import { getActivities as getStravaActivities, getActivityById as getStravaActivityById, getActivityStreams as getStravaActivityStreams, getActivityPhotos as getStravaActivityPhotos } from '../strava/activities';
 import { getDatabase } from '../database';
 import { mapStravaActivity, mapStravaDetailedActivity } from '../../types/mappers';
 import { mapStravaDetailedActivityToDetailedData } from './mappers';
@@ -102,6 +102,23 @@ export interface GetStreamsResult {
   power: number[] | null;
 }
 
+export interface ActivityPhoto {
+  uniqueId: string;
+  url: string;
+  caption: string;
+  location: [number, number] | null;
+}
+
+export interface GetPhotosParams {
+  userId: number;
+  accessToken: string;
+  activityId: number;
+}
+
+export interface GetPhotosResult {
+  photos: ActivityPhoto[];
+}
+
 /**
  * Map stored activity from database to Activity type
  */
@@ -159,6 +176,8 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
   // Retrieve detailed data from database if available
   let laps = null;
   let splitsMetric = null;
+  let bestEfforts = null;
+  let segmentEfforts = null;
 
   if (stored.hasDetailedData) {
     const db = getDatabase();
@@ -172,7 +191,7 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
         distanceMeters: lap.distanceMeters,
         elapsedTimeSeconds: lap.elapsedTimeSeconds,
         movingTimeSeconds: lap.movingTimeSeconds,
-        startDate: new Date(lap.startDate * 1000).toISOString(), // Convert Unix timestamp to ISO string
+        startDate: new Date(lap.startDate * 1000).toISOString(),
         totalElevationGain: lap.totalElevationGain,
         averageSpeed: lap.averageSpeed,
         maxSpeed: lap.maxSpeed,
@@ -194,6 +213,52 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
         paceZone: split.paceZone,
       }));
     }
+
+    // Fetch best efforts
+    const storedBestEfforts = db.getActivityBestEfforts(stored.id);
+    if (storedBestEfforts.length > 0) {
+      bestEfforts = storedBestEfforts.map(effort => ({
+        name: effort.name,
+        distanceMeters: effort.distanceMeters,
+        elapsedTimeSeconds: effort.elapsedTimeSeconds,
+        movingTimeSeconds: effort.movingTimeSeconds,
+        prRank: effort.prRank,
+      }));
+    }
+
+    // Fetch segment efforts
+    const storedSegmentEfforts = db.getActivitySegmentEfforts(stored.id);
+    if (storedSegmentEfforts.length > 0) {
+      segmentEfforts = storedSegmentEfforts.map(effort => ({
+        name: effort.segmentName,
+        distanceMeters: effort.distanceMeters,
+        elapsedTimeSeconds: effort.elapsedTimeSeconds,
+        movingTimeSeconds: effort.movingTimeSeconds,
+        averageHeartRate: effort.averageHeartrate,
+        prRank: effort.prRank,
+      }));
+    }
+  }
+
+  // Parse photos
+  let photos: { count: number; primary?: { uniqueId?: string; url100?: string; url600?: string; mediaType?: number } | null } | undefined;
+  if (stored.photosJson) {
+    try {
+      const parsed = JSON.parse(stored.photosJson);
+      if (parsed.count > 0 || parsed.primary) {
+        photos = {
+          count: parsed.count ?? 0,
+          primary: parsed.primary ? {
+            uniqueId: parsed.primary.unique_id,
+            url100: parsed.primary.urls?.['100'],
+            url600: parsed.primary.urls?.['600'],
+            mediaType: parsed.primary.media_type,
+          } : null,
+        };
+      }
+    } catch {
+      // Invalid JSON, leave as undefined
+    }
   }
 
   return {
@@ -212,6 +277,13 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
       : null,
     laps,
     splitsMetric,
+    bestEfforts,
+    segmentEfforts,
+    photos,
+    elevHigh: stored.elevHigh,
+    elevLow: stored.elevLow,
+    kilojoules: stored.kilojoules,
+    deviceName: stored.deviceName,
   };
 }
 
@@ -407,6 +479,35 @@ export class ActivitiesService {
       activityId,
       availableStreams: Object.keys(streams),
     });
+
+    return result;
+  }
+
+  /**
+   * Get photos for an activity from Strava
+   */
+  async getPhotos(params: GetPhotosParams): Promise<GetPhotosResult> {
+    const { userId, accessToken, activityId } = params;
+
+    const cacheKey = LRUCache.scopedKey(userId, `photos:${activityId}`);
+    const cached = this.cache.get(cacheKey) as GetPhotosResult | undefined;
+    if (cached) {
+      return cached;
+    }
+
+    const client = new StravaClient(accessToken);
+    const stravaPhotos = await getStravaActivityPhotos(client, activityId);
+
+    const result: GetPhotosResult = {
+      photos: stravaPhotos.map(p => ({
+        uniqueId: p.unique_id,
+        url: p.urls?.['600'] ?? p.urls?.['100'] ?? '',
+        caption: p.caption ?? '',
+        location: p.location,
+      })).filter(p => p.url),
+    };
+
+    this.cache.set(cacheKey, result, 600);
 
     return result;
   }
