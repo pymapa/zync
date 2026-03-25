@@ -14,7 +14,7 @@ export interface ActivityFilters {
 }
 
 export function useInfiniteActivities(filters?: ActivityFilters) {
-  const { data, isLoading, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage, isPlaceholderData } = useInfiniteQuery({
+  const { data, isLoading, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['activities', filters],
     queryFn: async ({ pageParam }) => {
       const params: GetActivitiesParams = {

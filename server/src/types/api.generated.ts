@@ -145,7 +145,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "Run" | "TrailRun" | "VirtualRun" | "Ride" | "MountainBikeRide" | "GravelRide" | "EBikeRide" | "VirtualRide" | "Swim" | "Walk" | "Hike" | "AlpineSki" | "BackcountrySki" | "NordicSki" | "Workout" | "WeightTraining" | "Yoga" | "Snowboard" | "Crossfit" | "Kayaking" | "Other";
+        ActivityType: "Run" | "TrailRun" | "VirtualRun" | "Ride" | "MountainBikeRide" | "GravelRide" | "EBikeRide" | "VirtualRide" | "Swim" | "Walk" | "Hike" | "AlpineSki" | "BackcountrySki" | "NordicSki" | "Workout" | "WeightTraining" | "Yoga" | "Snowboard" | "Snowshoe" | "IceSkate" | "RollerSki" | "Crossfit" | "Kayaking" | "Other";
         Activity: {
             /** @description Unique activity identifier */
             id: number;

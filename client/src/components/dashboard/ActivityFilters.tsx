@@ -27,6 +27,7 @@ interface PresetOption<T extends string> {
 // Static data — CATEGORIES exported for ActivitySearchBar
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const CATEGORIES: CategoryDef[] = [
   { id: 'all',      label: 'All',      icon: '✦',  color: '#0D9488', types: [] },
   { id: 'running', label: 'Running',  icon: '🏃', color: '#EF4444', types: ['Run', 'TrailRun', 'VirtualRun'] },

@@ -161,7 +161,8 @@ export function ActivityStreamsGraph({ activity, height = 300 }: ActivityStreams
   }
 
   // Tooltip formatter: per-dataKey
-  const tooltipFormatter = (value: number, name: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tooltipFormatter = (value: any, name: any) => {
     const cfg = configs.find(c => c.label === name);
     if (!cfg) return [value, name];
     if (cfg.key === 'pace' && !isRide) {

@@ -26,7 +26,7 @@ export default function Dashboard() {
   const updateParam = useCallback((key: string, value: string | boolean) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
-      if (!value || value === 'all' || value === 'any' || value === false) {
+      if (!value || value === 'all' || value === 'any') {
         next.delete(key);
       } else {
         next.set(key, String(value));

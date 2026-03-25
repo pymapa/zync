@@ -183,6 +183,9 @@ components:
         - WeightTraining
         - Yoga
         - Snowboard
+        - Snowshoe
+        - IceSkate
+        - RollerSki
         - Crossfit
         - Kayaking
         - Other

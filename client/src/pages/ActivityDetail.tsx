@@ -13,6 +13,7 @@ import { ROUTES } from '../lib/utils/routes';
 export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { activity, isLoading, error } = useActivity(id ?? '');
 
   if (!id) {
     return (
@@ -31,8 +32,6 @@ export default function ActivityDetail() {
       </PageLayout>
     );
   }
-
-  const { activity, isLoading, error } = useActivity(id);
 
   if (isLoading) {
     return <PageLoading />;
