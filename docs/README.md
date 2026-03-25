@@ -6,7 +6,6 @@ Zync is a personal dashboard that integrates health/fitness data with enhanced s
 
 ## Core Objectives
 
-- **Garmin Integration**: Connect to Garmin Connect to fetch health and fitness data
 - **Authentication**: Secure user authentication and authorization  
 - **Enhanced Search**: Advanced search functionality with filtering and data discovery
 - **Modern UI**: Clean, responsive interface for data exploration
