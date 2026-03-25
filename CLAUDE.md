@@ -13,6 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Always use the `verify-completion` skill before claiming work is done — run the command, read the output.
 - Always use the `design-first` skill when starting features or making significant changes — think before coding.
 
+## Rules
+
+- **Never skip or disable broken tests.** Always fix the underlying issue or update the test assertions to match current behavior. No `.skip`, `.todo`, or commenting out tests.
+
 ---
 
 ## Project Overview
