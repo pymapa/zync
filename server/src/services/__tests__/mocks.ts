@@ -161,6 +161,13 @@ export function createMockDatabase() {
       totalCalories: 0,
       activityCount: 0,
     }),
+    getActivityStreaks: vi.fn().mockReturnValue({
+      currentStreak: 0,
+      longestStreak: 0,
+      longestStreakStart: null,
+      longestStreakEnd: null,
+    }),
+    getDailyActivityStats: vi.fn().mockReturnValue([]),
     getSyncStatus: vi.fn(),
     createSyncStatus: vi.fn(),
     updateSyncStatus: vi.fn(),
