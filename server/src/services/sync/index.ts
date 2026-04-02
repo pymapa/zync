@@ -148,9 +148,9 @@ export async function startSync(
   let pagesProcessed = 0;
 
   // Get or create sync status
-  let syncStatus = db.getSyncStatus(userId);
+  let syncStatus = await db.getSyncStatus(userId);
   if (!syncStatus) {
-    syncStatus = db.createSyncStatus(userId);
+    syncStatus = await db.createSyncStatus(userId);
   }
 
   // Determine sync mode: full on first sync, incremental thereafter
@@ -200,7 +200,7 @@ export async function startSync(
       // Only set syncing state AFTER first successful API call
       // This prevents getting stuck in 'syncing' if initial request fails
       if (!hasSetSyncingState) {
-        db.updateSyncStatus(userId, {
+        await db.updateSyncStatus(userId, {
           syncState: 'syncing',
           syncStartedAt: startedAt,
           errorMessage: null, // Clear any previous error
@@ -225,7 +225,7 @@ export async function startSync(
         );
 
         // Batch upsert to database
-        db.upsertActivities(activityInputs);
+        await db.upsertActivities(activityInputs);
         totalActivitiesStored += activityInputs.length;
 
         // Track highest activity ID seen this run
@@ -235,9 +235,9 @@ export async function startSync(
         }
 
         // Update sync progress
-        db.updateSyncStatus(userId, {
+        await db.updateSyncStatus(userId, {
           lastActivityId: highestIdSeen ?? undefined,
-          totalActivities: db.getUserActivityCount(userId),
+          totalActivities: await db.getUserActivityCount(userId),
         });
 
         logger.info('Stored activities batch', {
@@ -285,10 +285,10 @@ export async function startSync(
     }
 
     const completedAt = Math.floor(Date.now() / 1000); // Convert to Unix timestamp (seconds)
-    const finalActivityCount = db.getUserActivityCount(userId);
+    const finalActivityCount = await db.getUserActivityCount(userId);
 
     // Update sync status to completed
-    db.updateSyncStatus(userId, {
+    await db.updateSyncStatus(userId, {
       syncState: 'completed',
       lastSyncAt: completedAt,
       totalActivities: finalActivityCount,
@@ -323,7 +323,7 @@ export async function startSync(
       error instanceof Error ? error.message : 'Unknown error occurred';
 
     // Update sync status to error with message
-    db.updateSyncStatus(userId, {
+    await db.updateSyncStatus(userId, {
       syncState: 'error',
       errorMessage,
       syncStartedAt: null, // Clear sync start time
@@ -362,9 +362,9 @@ export async function startSync(
  * @param userId - The user ID to get sync status for
  * @returns Sync status or null if user has never synced
  */
-export function getSyncProgress(userId: number): SyncStatus | null {
+export async function getSyncProgress(userId: number): Promise<SyncStatus | null> {
   const db = getDatabase();
-  const syncStatus = db.getSyncStatus(userId);
+  const syncStatus = await db.getSyncStatus(userId);
 
   if (!syncStatus) {
     return null;
@@ -381,9 +381,9 @@ export function getSyncProgress(userId: number): SyncStatus | null {
  * @param timeoutMs - Timeout in ms to consider stuck syncs (default 10 min)
  * @returns true if lock acquired, false if sync already in progress
  */
-export function tryAcquireSyncLock(userId: number, timeoutMs?: number): boolean {
+export async function tryAcquireSyncLock(userId: number, timeoutMs?: number): Promise<boolean> {
   const db = getDatabase();
-  return db.tryAcquireSyncLock(userId, timeoutMs);
+  return await db.tryAcquireSyncLock(userId, timeoutMs);
 }
 
 /**
@@ -393,9 +393,9 @@ export function tryAcquireSyncLock(userId: number, timeoutMs?: number): boolean 
  * @param timeoutMs - Timeout in milliseconds (default 10 minutes)
  * @returns true if sync was reset, false if no stuck sync found
  */
-export function resetStuckSync(userId: number, timeoutMs?: number): boolean {
+export async function resetStuckSync(userId: number, timeoutMs?: number): Promise<boolean> {
   const db = getDatabase();
-  return db.resetStuckSync(userId, timeoutMs);
+  return await db.resetStuckSync(userId, timeoutMs);
 }
 
 /**

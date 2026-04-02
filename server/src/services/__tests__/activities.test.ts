@@ -342,7 +342,7 @@ describe('ActivitiesService', () => {
   });
 
   describe('getStats', () => {
-    it('should return aggregated stats from database', () => {
+    it('should return aggregated stats from database', async () => {
       mockDb.getActivityStats.mockReturnValue({
         totalMovingTimeSeconds: 7200,
         cyclingDistanceMeters: 50000,
@@ -351,7 +351,7 @@ describe('ActivitiesService', () => {
         activityCount: 5,
       });
 
-      const result = service.getStats({ userId: 1, period: 'week' });
+      const result = await service.getStats({ userId: 1, period: 'week' });
 
       expect(result.totalMovingTimeSeconds).toBe(7200);
       expect(result.cyclingDistanceMeters).toBe(50000);

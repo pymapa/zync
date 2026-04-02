@@ -13,6 +13,7 @@ vi.mock('../config', () => ({
     port: 3001,
     nodeEnv: 'test',
     trustProxy: 0,
+    databaseUrl: 'postgresql://zync:zync@localhost:5432/zync_test',
     strava: {
       clientId: 'test_client_id',
       clientSecret: 'test_client_secret',
@@ -47,7 +48,7 @@ vi.mock('../middleware/auth', async (importOriginal) => {
 
   return {
     createAuthMiddleware: (sessionStore: any) => {
-      return (req: any, res: any, next: any) => {
+      return async (req: any, res: any, next: any) => {
         try {
           // Look for session ID in regular cookies (not signed) for testing
           const sessionId = req.cookies?.testSessionId || req.signedCookies?.testSessionId;
@@ -56,7 +57,7 @@ vi.mock('../middleware/auth', async (importOriginal) => {
             throw new errors.UnauthorizedError('No session found. Please log in.');
           }
 
-          const session = sessionStore.get(sessionId);
+          const session = await sessionStore.get(sessionId);
           if (!session) {
             throw new errors.AppError(
               401,
@@ -74,11 +75,11 @@ vi.mock('../middleware/auth', async (importOriginal) => {
       };
     },
     createOptionalAuthMiddleware: (sessionStore: any) => {
-      return (req: any, res: any, next: any) => {
+      return async (req: any, res: any, next: any) => {
         try {
           const sessionId = req.cookies?.testSessionId || req.signedCookies?.testSessionId;
           if (sessionId) {
-            const session = sessionStore.get(sessionId);
+            const session = await sessionStore.get(sessionId);
             if (session) {
               req.session = session;
             }
@@ -117,7 +118,7 @@ vi.mock('../utils/logger', () => ({
 
 import { createApp } from '../app';
 import { getDatabase, closeDatabase } from '../services/database';
-import { SessionStore } from '../services/session/store';
+import type { ISessionStore } from '../services/session/interface';
 import type { SyncStatus } from '../services/database/types';
 import * as syncService from '../services/sync';
 import * as stravaActivities from '../services/strava/activities';
@@ -125,23 +126,23 @@ import { createMockStravaActivity } from '../services/__tests__/mocks';
 
 describe('Sync API E2E Tests', () => {
   let app: Express;
-  let sessionStore: SessionStore;
+  let sessionStore: ISessionStore;
   const TEST_USER_ID = 999;
   const TEST_ACCESS_TOKEN = 'test_access_token_123';
   let testSessionId: string;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     // Create app with test database
-    const appInstance = createApp();
+    const appInstance = await createApp();
     app = appInstance.app;
     sessionStore = appInstance.services.sessionStore;
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     // Create a test session for authentication
-    const session = sessionStore.create(
+    const session = await sessionStore.create(
       TEST_USER_ID,
       TEST_ACCESS_TOKEN,
       'test_refresh_token',
@@ -160,25 +161,25 @@ describe('Sync API E2E Tests', () => {
 
     // Clean up test user data in database
     const db = getDatabase();
-    db.deleteUserActivities(TEST_USER_ID);
-    db.deleteSyncStatus(TEST_USER_ID);
+    await db.deleteUserActivities(TEST_USER_ID);
+    await db.deleteSyncStatus(TEST_USER_ID);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Clean up test session
     if (testSessionId) {
-      sessionStore.destroy(testSessionId);
+      await sessionStore.destroy(testSessionId);
     }
 
     // Clean up test user data
     const db = getDatabase();
-    db.deleteUserActivities(TEST_USER_ID);
-    db.deleteSyncStatus(TEST_USER_ID);
+    await db.deleteUserActivities(TEST_USER_ID);
+    await db.deleteSyncStatus(TEST_USER_ID);
   });
 
-  afterAll(() => {
-    sessionStore.shutdown();
-    closeDatabase();
+  afterAll(async () => {
+    await sessionStore.shutdown();
+    await closeDatabase();
   });
 
   describe('POST /api/sync', () => {
@@ -203,7 +204,7 @@ describe('Sync API E2E Tests', () => {
 
       // Verify sync status was updated in database
       const db = getDatabase();
-      const syncStatus = db.getSyncStatus(TEST_USER_ID);
+      const syncStatus = await db.getSyncStatus(TEST_USER_ID);
       expect(syncStatus).toBeTruthy();
       expect(syncStatus?.syncState).toBe('completed');
     });
@@ -211,8 +212,8 @@ describe('Sync API E2E Tests', () => {
     it('should return 409 Conflict if sync already in progress', async () => {
       // Manually set sync state to 'syncing' in the database to simulate an in-progress sync
       const db = getDatabase();
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'syncing',
         syncStartedAt: Math.floor(Date.now() / 1000),
       });
@@ -298,7 +299,7 @@ describe('Sync API E2E Tests', () => {
 
       // Verify activities were stored
       const db = getDatabase();
-      const storedActivities = db.searchActivities({ userId: TEST_USER_ID, limit: 10 });
+      const storedActivities = await db.searchActivities({ userId: TEST_USER_ID, limit: 10 });
       expect(storedActivities).toHaveLength(2);
       expect(storedActivities[0]!.name).toBe('Morning Run');
       expect(storedActivities[1]!.name).toBe('Evening Ride');
@@ -309,8 +310,8 @@ describe('Sync API E2E Tests', () => {
     it('should return current sync status', async () => {
       // Create a sync status first
       const db = getDatabase();
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'completed',
         totalActivities: 42,
         lastActivityId: 12345,
@@ -355,8 +356,8 @@ describe('Sync API E2E Tests', () => {
       // Create sync status in syncing state
       const db = getDatabase();
       const now = Math.floor(Date.now() / 1000);
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'syncing',
         syncStartedAt: now,
         totalActivities: 10,
@@ -373,8 +374,8 @@ describe('Sync API E2E Tests', () => {
 
     it('should show error state with error message', async () => {
       const db = getDatabase();
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'error',
         errorMessage: 'Network timeout',
         syncStartedAt: null,
@@ -396,8 +397,8 @@ describe('Sync API E2E Tests', () => {
       const elevenMinutesAgo = Math.floor(Date.now() / 1000) - (11 * 60);
 
       // Create a stuck sync (started 11 minutes ago)
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'syncing',
         syncStartedAt: elevenMinutesAgo,
       });
@@ -414,7 +415,7 @@ describe('Sync API E2E Tests', () => {
       });
 
       // Verify sync status was reset to error
-      const syncStatus = db.getSyncStatus(TEST_USER_ID);
+      const syncStatus = await db.getSyncStatus(TEST_USER_ID);
       expect(syncStatus?.syncState).toBe('error');
       expect(syncStatus?.syncStartedAt).toBeNull();
     });
@@ -424,8 +425,8 @@ describe('Sync API E2E Tests', () => {
       const twoMinutesAgo = Math.floor(Date.now() / 1000) - (2 * 60);
 
       // Create an active sync (started 2 minutes ago)
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'syncing',
         syncStartedAt: twoMinutesAgo,
       });
@@ -446,8 +447,8 @@ describe('Sync API E2E Tests', () => {
       const db = getDatabase();
 
       // Create a completed sync (not stuck)
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'completed',
         syncStartedAt: null,
       });
@@ -517,7 +518,7 @@ describe('Sync API E2E Tests', () => {
 
       // Verify activities were stored in the database
       const db = getDatabase();
-      const storedCount = db.getUserActivityCount(TEST_USER_ID);
+      const storedCount = await db.getUserActivityCount(TEST_USER_ID);
 
       const finalStatus = await request(app)
         .get('/api/sync/status')
@@ -563,8 +564,8 @@ describe('Sync API E2E Tests', () => {
       // First, trigger a sync and set up the DB to be in 'syncing' state
       // This simulates what happens when a sync is already running
       const db = getDatabase();
-      db.createSyncStatus(TEST_USER_ID);
-      db.updateSyncStatus(TEST_USER_ID, {
+      await db.createSyncStatus(TEST_USER_ID);
+      await db.updateSyncStatus(TEST_USER_ID, {
         syncState: 'syncing',
         syncStartedAt: Math.floor(Date.now() / 1000),
       });
@@ -604,7 +605,7 @@ describe('Sync API E2E Tests', () => {
 
       // Verify first sync
       const db = getDatabase();
-      let activity = db.getActivityById(123, TEST_USER_ID);
+      let activity = await db.getActivityById(123, TEST_USER_ID);
       expect(activity?.name).toBe('Original Name');
       expect(activity?.kudosCount).toBe(5);
 
@@ -628,11 +629,11 @@ describe('Sync API E2E Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Verify activity was updated, not duplicated
-      activity = db.getActivityById(123, TEST_USER_ID);
+      activity = await db.getActivityById(123, TEST_USER_ID);
       expect(activity?.name).toBe('Updated Name');
       expect(activity?.kudosCount).toBe(15);
 
-      const allActivities = db.searchActivities({ userId: TEST_USER_ID, limit: 100 });
+      const allActivities = await db.searchActivities({ userId: TEST_USER_ID, limit: 100 });
       expect(allActivities).toHaveLength(1); // No duplicate
     });
 
@@ -659,7 +660,7 @@ describe('Sync API E2E Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const db = getDatabase();
-      const activity = db.getActivityById(999, TEST_USER_ID);
+      const activity = await db.getActivityById(999, TEST_USER_ID);
       expect(activity).toBeTruthy();
       expect(activity!.startLat).toBeNull();
       expect(activity!.startLng).toBeNull();

@@ -4,10 +4,13 @@
  */
 
 import express, { Express } from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { Pool } from 'pg';
 import { config } from './config';
-import { SessionStore } from './services/session/store';
+import type { ISessionStore } from './services/session/interface';
+import { PostgresSessionStore } from './services/session/pg-store';
 import { LRUCache } from './services/cache/cache';
 import { initDatabase } from './services/database/index';
 import { corsMiddleware } from './middleware/cors';
@@ -16,30 +19,36 @@ import { createApiRouter } from './routes';
 import { logger } from './utils/logger';
 
 export interface AppServices {
-  sessionStore: SessionStore;
+  sessionStore: ISessionStore;
   cache: LRUCache<unknown>;
+  pgPool: Pool;
 }
 
-export function createApp(): { app: Express; services: AppServices } {
+export async function createApp(): Promise<{ app: Express; services: AppServices }> {
   const app = express();
 
   // Trust proxy configuration
-  // Enable this if the app is behind a reverse proxy (nginx, load balancer, etc.)
-  // This allows Express to trust X-Forwarded-* headers for req.ip, req.protocol, etc.
   if (config.trustProxy > 0) {
     app.set('trust proxy', config.trustProxy);
     logger.info('Trust proxy enabled', { trustProxy: config.trustProxy });
   }
 
-  // Initialize services
-  const sessionStore = new SessionStore(config.cookie.maxAge);
+  // Initialize PostgreSQL pool (shared between session store and database)
+  const pgPool = new Pool({ connectionString: config.databaseUrl });
+
+  // Initialize session store
+  const sessionStore: ISessionStore = new PostgresSessionStore(pgPool, config.cookie.maxAge);
+
+  await sessionStore.init();
+
+  // Initialize cache
   const cache = new LRUCache({
     maxSize: config.cache.maxSize,
     defaultTtlSeconds: config.cache.defaultTtlSeconds,
   });
 
-  // Initialize database
-  initDatabase();
+  // Initialize database (shares pg pool with session store)
+  await initDatabase(pgPool);
   logger.info('Database initialized successfully');
 
   // Security middleware
@@ -85,7 +94,17 @@ export function createApp(): { app: Express; services: AppServices } {
   // Mount API routes
   app.use('/api', createApiRouter(sessionStore, cache));
 
-  // 404 handler
+  // Serve static frontend in production
+  if (config.nodeEnv === 'production') {
+    const clientDist = path.join(__dirname, '../../client/dist');
+    app.use(express.static(clientDist));
+    // SPA fallback: serve index.html for all non-API routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'));
+    });
+  }
+
+  // 404 handler (only reaches here for non-production or API routes)
   app.use(notFoundHandler);
 
   // Global error handler (must be last)
@@ -98,6 +117,7 @@ export function createApp(): { app: Express; services: AppServices } {
     services: {
       sessionStore,
       cache,
+      pgPool,
     },
   };
 }
