@@ -12,7 +12,8 @@ import { config } from './config';
 import type { ISessionStore } from './services/session/interface';
 import { PostgresSessionStore } from './services/session/pg-store';
 import { LRUCache } from './services/cache/cache';
-import { initDatabase } from './services/database/index';
+import { initDatabase, _setDatabaseForTesting } from './services/database/index';
+import type { IDatabase } from './services/database/interface';
 import { corsMiddleware } from './middleware/cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { createApiRouter } from './routes';
@@ -21,10 +22,15 @@ import { logger } from './utils/logger';
 export interface AppServices {
   sessionStore: ISessionStore;
   cache: LRUCache<unknown>;
-  pgPool: Pool;
+  pgPool: Pool | null;
 }
 
-export async function createApp(): Promise<{ app: Express; services: AppServices }> {
+export interface AppOverrides {
+  sessionStore?: ISessionStore;
+  database?: IDatabase;
+}
+
+export async function createApp(overrides?: AppOverrides): Promise<{ app: Express; services: AppServices }> {
   const app = express();
 
   // Trust proxy configuration
@@ -33,13 +39,17 @@ export async function createApp(): Promise<{ app: Express; services: AppServices
     logger.info('Trust proxy enabled', { trustProxy: config.trustProxy });
   }
 
-  // Initialize PostgreSQL pool (shared between session store and database)
-  const pgPool = new Pool({ connectionString: config.databaseUrl });
+  let pgPool: Pool | null = null;
+  let sessionStore: ISessionStore;
 
-  // Initialize session store
-  const sessionStore: ISessionStore = new PostgresSessionStore(pgPool, config.cookie.maxAge);
-
-  await sessionStore.init();
+  if (overrides?.sessionStore) {
+    sessionStore = overrides.sessionStore;
+  } else {
+    // Initialize PostgreSQL pool (shared between session store and database)
+    pgPool = new Pool({ connectionString: config.databaseUrl });
+    sessionStore = new PostgresSessionStore(pgPool, config.cookie.maxAge);
+    await sessionStore.init();
+  }
 
   // Initialize cache
   const cache = new LRUCache({
@@ -47,8 +57,12 @@ export async function createApp(): Promise<{ app: Express; services: AppServices
     defaultTtlSeconds: config.cache.defaultTtlSeconds,
   });
 
-  // Initialize database (shares pg pool with session store)
-  await initDatabase(pgPool);
+  // Initialize database
+  if (overrides?.database) {
+    _setDatabaseForTesting(overrides.database);
+  } else {
+    await initDatabase(pgPool!);
+  }
   logger.info('Database initialized successfully');
 
   // Security middleware

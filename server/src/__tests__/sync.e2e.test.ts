@@ -123,6 +123,8 @@ import type { SyncStatus } from '../services/database/types';
 import * as syncService from '../services/sync';
 import * as stravaActivities from '../services/strava/activities';
 import { createMockStravaActivity } from '../services/__tests__/mocks';
+import { InMemoryDatabase } from '../services/__tests__/in-memory-db';
+import { SessionStore } from '../services/session/store';
 
 describe('Sync API E2E Tests', () => {
   let app: Express;
@@ -132,8 +134,15 @@ describe('Sync API E2E Tests', () => {
   let testSessionId: string;
 
   beforeAll(async () => {
-    // Create app with test database
-    const appInstance = await createApp();
+    // Use in-memory implementations so tests don't require a PostgreSQL server
+    const inMemoryDb = new InMemoryDatabase();
+    const inMemorySessionStore = new SessionStore(30 * 24 * 60 * 60 * 1000);
+    await inMemorySessionStore.init();
+
+    const appInstance = await createApp({
+      sessionStore: inMemorySessionStore,
+      database: inMemoryDb,
+    });
     app = appInstance.app;
     sessionStore = appInstance.services.sessionStore;
   });

@@ -46,6 +46,13 @@ export async function initDatabase(pool: Pool): Promise<void> {
 }
 
 /**
+ * Inject a database instance directly (for testing only)
+ */
+export function _setDatabaseForTesting(database: IDatabase): void {
+  db = database;
+}
+
+/**
  * Get the database instance
  * Throws if database hasn't been initialized
  */
