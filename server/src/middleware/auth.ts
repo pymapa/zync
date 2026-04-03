@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { SessionStore, Session } from '../services/session/store';
+import type { ISessionStore, Session } from '../services/session/interface';
 import { UnauthorizedError, AppError, ErrorCode } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { config } from '../config';
@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-export function createAuthMiddleware(sessionStore: SessionStore) {
+export function createAuthMiddleware(sessionStore: ISessionStore) {
   return async (
     req: Request,
     res: Response,
@@ -33,7 +33,7 @@ export function createAuthMiddleware(sessionStore: SessionStore) {
       }
 
       // Validate session
-      const session = sessionStore.get(sessionId);
+      const session = await sessionStore.get(sessionId);
 
       if (!session) {
         // Session expired or doesn't exist
@@ -75,7 +75,7 @@ export function createAuthMiddleware(sessionStore: SessionStore) {
  * Optional authentication middleware
  * Does not throw error if no session, but attaches session if present
  */
-export function createOptionalAuthMiddleware(sessionStore: SessionStore) {
+export function createOptionalAuthMiddleware(sessionStore: ISessionStore) {
   return async (
     req: Request,
     res: Response,
@@ -85,7 +85,7 @@ export function createOptionalAuthMiddleware(sessionStore: SessionStore) {
       const sessionId = req.signedCookies[config.cookie.name];
 
       if (sessionId) {
-        const session = sessionStore.get(sessionId);
+        const session = await sessionStore.get(sessionId);
         if (session) {
           req.session = session;
         }

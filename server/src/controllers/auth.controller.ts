@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { SessionStore } from '../services/session/store';
+import type { ISessionStore } from '../services/session/interface';
 import { LRUCache } from '../services/cache/cache';
 import { config } from '../config';
 import { logger } from '../utils/logger';
@@ -49,7 +49,7 @@ function cleanupPKCE(state: string): void {
 }
 
 export function createAuthController(
-  sessionStore: SessionStore,
+  sessionStore: ISessionStore,
   cache: LRUCache<unknown>
 ) {
   /**
@@ -118,7 +118,7 @@ export function createAuthController(
 
       // Create session with mapped user data
       const user = mapStravaAthlete(tokenResponse.athlete);
-      const session = sessionStore.create(
+      const session = await sessionStore.create(
         tokenResponse.athlete.id,
         tokenResponse.access_token,
         tokenResponse.refresh_token,
@@ -172,7 +172,7 @@ export function createAuthController(
       const tokenResponse = await refreshAccessToken(currentRefreshToken);
 
       // Update session with new tokens
-      const updated = sessionStore.updateTokens(
+      const updated = await sessionStore.updateTokens(
         req.session.id,
         tokenResponse.access_token,
         tokenResponse.refresh_token,
@@ -221,7 +221,7 @@ export function createAuthController(
       const { id: sessionId, userId } = req.session;
 
       // Destroy session
-      sessionStore.destroy(sessionId);
+      await sessionStore.destroy(sessionId);
 
       // Clear user's cache
       cache.deleteUserCache(userId);

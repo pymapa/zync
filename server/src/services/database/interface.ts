@@ -1,5 +1,6 @@
 /**
  * Database interface - abstraction layer for swapping DBMS implementations
+ * All methods are async to support both sync (SQLite) and async (PostgreSQL) backends
  */
 
 import type {
@@ -23,69 +24,69 @@ export interface IDatabase {
   /**
    * Initialize database connection and run migrations
    */
-  init(): void;
+  init(): Promise<void>;
 
   /**
    * Close database connection gracefully
    */
-  close(): void;
+  close(): Promise<void>;
 
   // Activity operations
-  upsertActivity(activity: ActivityInput): void;
-  upsertActivities(activities: ActivityInput[]): void;
-  getActivityById(activityId: number, userId: number): StoredActivity | null;
-  searchActivities(filters: ActivitySearchFilters): StoredActivity[];
-  deleteUserActivities(userId: number): void;
-  getUserActivityCount(userId: number): number;
-  getActivityStats(filters: ActivityStatsFilters): ActivityStats;
-  getActivityStreaks(userId: number): ActivityStreaks;
-  getDailyActivityStats(filters: ActivityStatsFilters): DailyActivityStats[];
+  upsertActivity(activity: ActivityInput): Promise<void>;
+  upsertActivities(activities: ActivityInput[]): Promise<void>;
+  getActivityById(activityId: number, userId: number): Promise<StoredActivity | null>;
+  searchActivities(filters: ActivitySearchFilters): Promise<StoredActivity[]>;
+  deleteUserActivities(userId: number): Promise<void>;
+  getUserActivityCount(userId: number): Promise<number>;
+  getActivityStats(filters: ActivityStatsFilters): Promise<ActivityStats>;
+  getActivityStreaks(userId: number): Promise<ActivityStreaks>;
+  getDailyActivityStats(filters: ActivityStatsFilters): Promise<DailyActivityStats[]>;
 
   /**
    * Store complete detailed activity data including all nested structures.
    * This atomically stores the activity and all related data (laps, splits, efforts).
    * Sets hasDetailedData flag to true.
    */
-  upsertDetailedActivity(data: DetailedActivityData): void;
+  upsertDetailedActivity(data: DetailedActivityData): Promise<void>;
 
   /**
    * Get activity laps for a specific activity
    */
-  getActivityLaps(activityId: number): StoredActivityLap[];
+  getActivityLaps(activityId: number): Promise<StoredActivityLap[]>;
 
   /**
    * Get metric splits for a specific activity
    */
-  getActivitySplitsMetric(activityId: number): StoredActivitySplitMetric[];
+  getActivitySplitsMetric(activityId: number): Promise<StoredActivitySplitMetric[]>;
 
   /**
    * Get best efforts for a specific activity
    */
-  getActivityBestEfforts(activityId: number): StoredActivityBestEffort[];
+  getActivityBestEfforts(activityId: number): Promise<StoredActivityBestEffort[]>;
 
   /**
    * Get segment efforts for a specific activity
    */
-  getActivitySegmentEfforts(activityId: number): StoredActivitySegmentEffort[];
+  getActivitySegmentEfforts(activityId: number): Promise<StoredActivitySegmentEffort[]>;
 
   /**
    * Delete all detailed activity data (laps, splits, efforts) for an activity.
    * Note: The main activity record is NOT deleted.
    */
-  deleteActivityDetails(activityId: number): void;
+  deleteActivityDetails(activityId: number): Promise<void>;
 
   // Sync status operations
-  getSyncStatus(userId: number): SyncStatus | null;
-  createSyncStatus(userId: number): SyncStatus;
-  updateSyncStatus(userId: number, updates: SyncStatusUpdate): void;
-  deleteSyncStatus(userId: number): void;
+  getSyncStatus(userId: number): Promise<SyncStatus | null>;
+  createSyncStatus(userId: number): Promise<SyncStatus>;
+  updateSyncStatus(userId: number, updates: SyncStatusUpdate): Promise<void>;
+  deleteSyncStatus(userId: number): Promise<void>;
 
   /**
    * Atomically check if sync can be started and acquire lock.
    * Prevents TOCTOU race conditions.
    * @returns true if lock acquired, false if sync already in progress
    */
-  tryAcquireSyncLock(userId: number, timeoutMs?: number): boolean;
+  tryAcquireSyncLock(userId: number, timeoutMs?: number): Promise<boolean>;
 
   /**
    * Reset a stuck sync that has exceeded the timeout.
@@ -93,6 +94,6 @@ export interface IDatabase {
    * @param timeoutMs - Timeout in milliseconds (default 10 minutes)
    * @returns true if sync was reset, false if no stuck sync found
    */
-  resetStuckSync(userId: number, timeoutMs?: number): boolean;
+  resetStuckSync(userId: number, timeoutMs?: number): Promise<boolean>;
 
 }

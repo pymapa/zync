@@ -4,13 +4,9 @@
  * Manages Strava access tokens with automatic refresh.
  * This service provides a layer of abstraction for obtaining valid tokens
  * for webhook processing and background jobs.
- *
- * Note: In the current implementation, tokens are stored in session store.
- * In production, consider storing refresh tokens in the database separately
- * from sessions to ensure long-term availability for webhook processing.
  */
 
-import { SessionStore, Session } from '../session/store';
+import type { ISessionStore } from '../session/interface';
 import { refreshAccessToken } from './oauth';
 import { logger } from '../../utils/logger';
 import { AppError, ErrorCode } from '../../utils/errors';
@@ -22,9 +18,9 @@ export interface ValidToken {
 }
 
 export class TokenManager {
-  private sessionStore: SessionStore;
+  private sessionStore: ISessionStore;
 
-  constructor(sessionStore: SessionStore) {
+  constructor(sessionStore: ISessionStore) {
     this.sessionStore = sessionStore;
   }
 
@@ -35,7 +31,7 @@ export class TokenManager {
    * @throws AppError if no session/refresh token found for user
    */
   async getValidToken(userId: number): Promise<ValidToken> {
-    const session = this.findUserSession(userId);
+    const session = await this.sessionStore.getByUserId(userId);
 
     if (!session) {
       throw new AppError(
@@ -63,7 +59,7 @@ export class TokenManager {
       const tokenResponse = await refreshAccessToken(session.refreshToken);
 
       // Update session with new tokens
-      const updated = this.sessionStore.updateTokens(
+      const updated = await this.sessionStore.updateTokens(
         session.id,
         tokenResponse.access_token,
         tokenResponse.refresh_token,
@@ -99,26 +95,12 @@ export class TokenManager {
   }
 
   /**
-   * Find an active session for a user
-   * @param userId - Strava athlete ID
-   * @returns Session if found, null otherwise
-   */
-  private findUserSession(userId: number): Session | null {
-    // Access the internal sessions map
-    // Note: This is accessing a private field. In production, you might want to
-    // add a public method to SessionStore to get sessions by user ID
-    const sessions = Array.from(this.sessionStore['sessions'].values());
-    const userSession = sessions.find((s) => s.userId === userId);
-
-    return userSession ?? null;
-  }
-
-  /**
    * Check if a user has valid credentials available
    * @param userId - Strava athlete ID
    * @returns true if user has a session with tokens
    */
-  hasValidCredentials(userId: number): boolean {
-    return this.findUserSession(userId) !== null;
+  async hasValidCredentials(userId: number): Promise<boolean> {
+    const session = await this.sessionStore.getByUserId(userId);
+    return session !== null && session !== undefined;
   }
 }

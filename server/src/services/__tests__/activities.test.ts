@@ -342,7 +342,7 @@ describe('ActivitiesService', () => {
   });
 
   describe('getStats', () => {
-    it('should return aggregated stats from database', () => {
+    it('should return aggregated stats from database', async () => {
       mockDb.getActivityStats.mockReturnValue({
         totalMovingTimeSeconds: 7200,
         cyclingDistanceMeters: 50000,
@@ -351,7 +351,7 @@ describe('ActivitiesService', () => {
         activityCount: 5,
       });
 
-      const result = service.getStats({ userId: 1, period: 'week' });
+      const result = await service.getStats({ userId: 1, period: 'week' });
 
       expect(result.totalMovingTimeSeconds).toBe(7200);
       expect(result.cyclingDistanceMeters).toBe(50000);
@@ -391,11 +391,14 @@ describe('ActivitiesService', () => {
       const fromDate = new Date(call.startDateFrom! * 1000);
       const toDate = new Date(call.startDateTo! * 1000);
 
-      // Both should be Mondays
+      // Both should be Mondays at midnight
       expect(fromDate.getDay()).toBe(1);
       expect(toDate.getDay()).toBe(1);
-      // Difference should be exactly 7 days
-      expect(toDate.getTime() - fromDate.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
+      expect(fromDate.getHours()).toBe(0);
+      expect(toDate.getHours()).toBe(0);
+      // Difference should be exactly 7 calendar days (use dates, not ms — DST can shift by 1h)
+      const diffDays = (toDate.getDate() - fromDate.getDate() + 35) % 35;
+      expect(diffDays).toBe(7);
     });
 
     it('should pass correct date range for month period', () => {

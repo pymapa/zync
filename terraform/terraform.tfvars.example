@@ -1,0 +1,5 @@
+subscription_id      = "your-azure-subscription-id"
+ghcr_image           = "ghcr.io/your-user/zync:latest"
+strava_client_id     = "your-strava-client-id"
+strava_client_secret = "your-strava-client-secret"
+cookie_secret        = "a-secure-random-string-at-least-32-characters"

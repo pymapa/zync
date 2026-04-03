@@ -14,9 +14,9 @@ import { createApp } from './app';
 import { logger } from './utils/logger';
 import { closeDatabase } from './services/database/index';
 
-function startServer(): void {
+async function startServer(): Promise<void> {
   try {
-    const { app, services } = createApp();
+    const { app, services } = await createApp();
 
     const server = app.listen(config.port, () => {
       logger.info('Server started successfully', {
@@ -37,9 +37,12 @@ function startServer(): void {
 
         // Cleanup application resources
         try {
-          services.sessionStore.shutdown();
+          await services.sessionStore.shutdown();
           services.cache.shutdown();
-          closeDatabase();
+          await closeDatabase();
+          if (services.pgPool) {
+            await services.pgPool.end();
+          }
           logger.info('Application resources cleaned up');
         } catch (error) {
           logger.error('Error cleaning up resources', error as Error);

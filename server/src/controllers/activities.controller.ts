@@ -235,7 +235,7 @@ export function createActivitiesController(cache: LRUCache<unknown>) {
       const query = getStatsQuerySchema.parse(req.query);
       const { userId } = req.session;
 
-      const result = activitiesService.getStats({
+      const result = await activitiesService.getStats({
         userId,
         period: query.period as StatsPeriod,
       });
@@ -265,7 +265,7 @@ export function createActivitiesController(cache: LRUCache<unknown>) {
       const query = getStatsQuerySchema.parse(req.query);
       const { userId } = req.session;
 
-      const result = activitiesService.getDailyStats({
+      const result = await activitiesService.getDailyStats({
         userId,
         period: query.period as StatsPeriod,
       });

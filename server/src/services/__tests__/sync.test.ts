@@ -293,19 +293,19 @@ describe('Sync Service', () => {
   });
 
   describe('getSyncProgress', () => {
-    it('should return sync status if exists', () => {
+    it('should return sync status if exists', async () => {
       const syncStatus = createMockSyncStatus({ totalActivities: 150 });
       mockDb.getSyncStatus.mockReturnValue(syncStatus);
 
-      const result = getSyncProgress(1);
+      const result = await getSyncProgress(1);
 
       expect(result).toEqual(syncStatus);
     });
 
-    it('should return null if user has never synced', () => {
+    it('should return null if user has never synced', async () => {
       mockDb.getSyncStatus.mockReturnValue(null);
 
-      const result = getSyncProgress(1);
+      const result = await getSyncProgress(1);
 
       expect(result).toBeNull();
     });
@@ -525,73 +525,73 @@ describe('Sync Service', () => {
   });
 
   describe('tryAcquireSyncLock', () => {
-    it('should acquire lock when no sync in progress', () => {
+    it('should acquire lock when no sync in progress', async () => {
       mockDb.tryAcquireSyncLock.mockReturnValue(true);
 
-      const result = tryAcquireSyncLock(1);
+      const result = await tryAcquireSyncLock(1);
 
       expect(result).toBe(true);
       expect(mockDb.tryAcquireSyncLock).toHaveBeenCalledWith(1, undefined);
     });
 
-    it('should not acquire lock when sync is in progress', () => {
+    it('should not acquire lock when sync is in progress', async () => {
       mockDb.tryAcquireSyncLock.mockReturnValue(false);
 
-      const result = tryAcquireSyncLock(1);
+      const result = await tryAcquireSyncLock(1);
 
       expect(result).toBe(false);
     });
 
-    it('should pass timeout parameter to database', () => {
+    it('should pass timeout parameter to database', async () => {
       mockDb.tryAcquireSyncLock.mockReturnValue(true);
       const customTimeout = 300000; // 5 minutes
 
-      tryAcquireSyncLock(1, customTimeout);
+      await tryAcquireSyncLock(1, customTimeout);
 
       expect(mockDb.tryAcquireSyncLock).toHaveBeenCalledWith(1, customTimeout);
     });
 
-    it('should acquire lock if previous sync timed out', () => {
+    it('should acquire lock if previous sync timed out', async () => {
       // Mock database behavior: first sync timed out, so lock is available
       mockDb.tryAcquireSyncLock.mockReturnValue(true);
 
-      const result = tryAcquireSyncLock(1, 600000);
+      const result = await tryAcquireSyncLock(1, 600000);
 
       expect(result).toBe(true);
     });
   });
 
   describe('resetStuckSync', () => {
-    it('should reset stuck sync that exceeded timeout', () => {
+    it('should reset stuck sync that exceeded timeout', async () => {
       mockDb.resetStuckSync.mockReturnValue(true);
 
-      const result = resetStuckSync(1);
+      const result = await resetStuckSync(1);
 
       expect(result).toBe(true);
       expect(mockDb.resetStuckSync).toHaveBeenCalledWith(1, undefined);
     });
 
-    it('should not reset sync that is still active', () => {
+    it('should not reset sync that is still active', async () => {
       mockDb.resetStuckSync.mockReturnValue(false);
 
-      const result = resetStuckSync(1);
+      const result = await resetStuckSync(1);
 
       expect(result).toBe(false);
     });
 
-    it('should pass timeout parameter to database', () => {
+    it('should pass timeout parameter to database', async () => {
       mockDb.resetStuckSync.mockReturnValue(true);
       const customTimeout = 300000; // 5 minutes
 
-      resetStuckSync(1, customTimeout);
+      await resetStuckSync(1, customTimeout);
 
       expect(mockDb.resetStuckSync).toHaveBeenCalledWith(1, customTimeout);
     });
 
-    it('should return false when no stuck sync exists', () => {
+    it('should return false when no stuck sync exists', async () => {
       mockDb.resetStuckSync.mockReturnValue(false);
 
-      const result = resetStuckSync(1, 600000);
+      const result = await resetStuckSync(1, 600000);
 
       expect(result).toBe(false);
     });

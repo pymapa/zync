@@ -4,12 +4,12 @@
  */
 
 import { Router } from 'express';
-import { SessionStore } from '../services/session/store';
+import type { ISessionStore } from '../services/session/interface';
 import { createSyncController } from '../controllers/sync.controller';
 import { createAuthMiddleware } from '../middleware/auth';
 import { userRateLimiter } from '../middleware/rateLimiter';
 
-export function createSyncRouter(sessionStore: SessionStore): Router {
+export function createSyncRouter(sessionStore: ISessionStore): Router {
   const router = Router();
   const syncController = createSyncController();
   const authMiddleware = createAuthMiddleware(sessionStore);

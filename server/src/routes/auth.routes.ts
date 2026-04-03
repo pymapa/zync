@@ -3,14 +3,14 @@
  */
 
 import { Router } from 'express';
-import { SessionStore } from '../services/session/store';
+import type { ISessionStore } from '../services/session/interface';
 import { LRUCache } from '../services/cache/cache';
 import { createAuthController } from '../controllers/auth.controller';
 import { createAuthMiddleware } from '../middleware/auth';
 import { authRateLimiter } from '../middleware/rateLimiter';
 
 export function createAuthRouter(
-  sessionStore: SessionStore,
+  sessionStore: ISessionStore,
   cache: LRUCache<unknown>
 ): Router {
   const router = Router();

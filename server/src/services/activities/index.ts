@@ -145,7 +145,7 @@ function mapStoredActivityToActivity(stored: StoredActivity): Activity {
 /**
  * Map stored activity from database to DetailedActivity type
  */
-function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedActivity {
+async function mapStoredActivityToDetailedActivity(stored: StoredActivity): Promise<DetailedActivity> {
   const baseActivity = mapStoredActivityToActivity(stored);
 
   let startLatLng: [number, number] | null = null;
@@ -183,7 +183,7 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
     const db = getDatabase();
 
     // Fetch laps
-    const storedLaps = db.getActivityLaps(stored.id);
+    const storedLaps = await db.getActivityLaps(stored.id);
     if (storedLaps.length > 0) {
       laps = storedLaps.map(lap => ({
         lapIndex: lap.lapIndex,
@@ -201,7 +201,7 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
     }
 
     // Fetch metric splits
-    const storedSplits = db.getActivitySplitsMetric(stored.id);
+    const storedSplits = await db.getActivitySplitsMetric(stored.id);
     if (storedSplits.length > 0) {
       splitsMetric = storedSplits.map(split => ({
         split: split.split,
@@ -215,7 +215,7 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
     }
 
     // Fetch best efforts
-    const storedBestEfforts = db.getActivityBestEfforts(stored.id);
+    const storedBestEfforts = await db.getActivityBestEfforts(stored.id);
     if (storedBestEfforts.length > 0) {
       bestEfforts = storedBestEfforts.map(effort => ({
         name: effort.name,
@@ -227,7 +227,7 @@ function mapStoredActivityToDetailedActivity(stored: StoredActivity): DetailedAc
     }
 
     // Fetch segment efforts
-    const storedSegmentEfforts = db.getActivitySegmentEfforts(stored.id);
+    const storedSegmentEfforts = await db.getActivitySegmentEfforts(stored.id);
     if (storedSegmentEfforts.length > 0) {
       segmentEfforts = storedSegmentEfforts.map(effort => ({
         name: effort.segmentName,
@@ -320,11 +320,11 @@ export class ActivitiesService {
     }
 
     if (source === 'local') {
-      return this.listFromLocal({ userId, page, perPage, before, after, ...filterParams });
+      return await this.listFromLocal({ userId, page, perPage, before, after, ...filterParams });
     }
 
     // Auto: try local first, fallback to Strava if empty on page 1 and no filters
-    const localResult = this.listFromLocal({ userId, page, perPage, before, after, ...filterParams });
+    const localResult = await this.listFromLocal({ userId, page, perPage, before, after, ...filterParams });
 
     const hasFilters = search || (types && types.length > 0) || minDistance !== undefined ||
                       maxDistance !== undefined || minDuration !== undefined ||
@@ -350,11 +350,11 @@ export class ActivitiesService {
     }
 
     if (source === 'local') {
-      return this.getFromLocal({ userId, activityId });
+      return await this.getFromLocal({ userId, activityId });
     }
 
     // Auto: try local first, fallback to Strava if not found
-    const localResult = this.getFromLocal({ userId, activityId });
+    const localResult = await this.getFromLocal({ userId, activityId });
 
     if (!localResult) {
       logger.info('Activity not found locally, falling back to Strava', { userId, activityId });
@@ -367,17 +367,17 @@ export class ActivitiesService {
   /**
    * Get aggregated activity stats for a time period
    */
-  getStats(params: GetStatsParams): GetStatsResult {
+  async getStats(params: GetStatsParams): Promise<GetStatsResult> {
     const { userId, period } = params;
     const { startDateFrom, startDateTo } = this.calculateDateRange(period);
 
     const db = getDatabase();
-    const stats = db.getActivityStats({
+    const stats = await db.getActivityStats({
       userId,
       startDateFrom,
       startDateTo,
     });
-    const streaks = db.getActivityStreaks(userId);
+    const streaks = await db.getActivityStreaks(userId);
 
     return {
       period,
@@ -398,12 +398,12 @@ export class ActivitiesService {
    * week/last_week/month return one bar per day.
    * year/all aggregate into monthly buckets so the chart stays readable.
    */
-  getDailyStats(params: GetStatsParams): GetDailyStatsResult {
+  async getDailyStats(params: GetStatsParams): Promise<GetDailyStatsResult> {
     const { userId, period } = params;
     const { startDateFrom, startDateTo } = this.calculateDateRange(period);
 
     const db = getDatabase();
-    const dailyStats = db.getDailyActivityStats({
+    const dailyStats = await db.getDailyActivityStats({
       userId,
       startDateFrom,
       startDateTo,
@@ -673,7 +673,7 @@ export class ActivitiesService {
 
   // Private methods
 
-  private listFromLocal(params: {
+  private async listFromLocal(params: {
     userId: number;
     page: number;
     perPage: number;
@@ -686,7 +686,7 @@ export class ActivitiesService {
     minDuration?: number;
     maxDuration?: number;
     hasHeartRate?: boolean;
-  }): ListActivitiesResult {
+  }): Promise<ListActivitiesResult> {
     const { userId, page, perPage, before, after, search, types, minDistance, maxDistance, minDuration, maxDuration, hasHeartRate } = params;
 
     const db = getDatabase();
@@ -705,7 +705,7 @@ export class ActivitiesService {
       offset: (page - 1) * perPage,
     };
 
-    const storedActivities = db.searchActivities(filters);
+    const storedActivities = await db.searchActivities(filters);
     const activities = storedActivities.map(mapStoredActivityToActivity);
 
     // Get total count for pagination (only when no filters for accurate count)
@@ -714,7 +714,7 @@ export class ActivitiesService {
                       minDistance !== undefined || maxDistance !== undefined ||
                       minDuration !== undefined || maxDuration !== undefined ||
                       hasHeartRate !== undefined;
-    const totalCount = !hasFilters ? db.getUserActivityCount(userId) : undefined;
+    const totalCount = !hasFilters ? await db.getUserActivityCount(userId) : undefined;
 
     logger.debug('Activities fetched from database', {
       userId,
@@ -784,14 +784,14 @@ export class ActivitiesService {
     };
   }
 
-  private getFromLocal(params: {
+  private async getFromLocal(params: {
     userId: number;
     activityId: number;
-  }): GetActivityResult | null {
+  }): Promise<GetActivityResult | null> {
     const { userId, activityId } = params;
 
     const db = getDatabase();
-    const storedActivity = db.getActivityById(activityId, userId);
+    const storedActivity = await db.getActivityById(activityId, userId);
 
     if (!storedActivity) {
       return null;
@@ -806,7 +806,7 @@ export class ActivitiesService {
       return null;
     }
 
-    const activity = mapStoredActivityToDetailedActivity(storedActivity);
+    const activity = await mapStoredActivityToDetailedActivity(storedActivity);
 
     logger.debug('Activity with detailed data fetched from database', {
       userId,
@@ -840,7 +840,7 @@ export class ActivitiesService {
     try {
       const db = getDatabase();
       const detailedData = mapStravaDetailedActivityToDetailedData(stravaActivity, userId);
-      db.upsertDetailedActivity(detailedData);
+      await db.upsertDetailedActivity(detailedData);
 
       logger.debug('Detailed activity data stored in database', {
         userId,
