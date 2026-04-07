@@ -396,9 +396,10 @@ describe('ActivitiesService', () => {
       expect(toDate.getDay()).toBe(1);
       expect(fromDate.getHours()).toBe(0);
       expect(toDate.getHours()).toBe(0);
-      // Difference should be exactly 7 calendar days (use dates, not ms — DST can shift by 1h)
-      const diffDays = (toDate.getDate() - fromDate.getDate() + 35) % 35;
-      expect(diffDays).toBe(7);
+      // Difference should be exactly 7 calendar days (use UTC to avoid DST shifts)
+      const diffMs = Date.UTC(toDate.getFullYear(), toDate.getMonth(), toDate.getDate())
+        - Date.UTC(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+      expect(diffMs / (24 * 60 * 60 * 1000)).toBe(7);
     });
 
     it('should pass correct date range for month period', () => {

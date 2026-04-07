@@ -201,79 +201,12 @@ export class PostgresDatabase implements IDatabase {
   // Activity operations
 
   async upsertActivity(activity: ActivityInput): Promise<void> {
-    const coords = parseCoordinates(activity);
-
-    await this.pool.query(
-      `INSERT INTO activities (
-        id, user_id, name, type, distance_meters, moving_time_seconds,
-        elapsed_time_seconds, elevation_gain_meters, start_date, start_date_local,
-        average_speed, max_speed, average_heartrate, max_heartrate, calories,
-        description, average_cadence, average_watts, kudos_count, comment_count,
-        summary_polyline, start_latlng, end_latlng,
-        start_lat, start_lng, end_lat, end_lng, geohash,
-        device_name, gear_id, max_watts, weighted_average_watts, kilojoules,
-        suffer_score, elev_high, elev_low, photos_json, has_detailed_data
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-        $31, $32, $33, $34, $35, $36, $37, $38
-      )
-      ON CONFLICT(id) DO UPDATE SET
-        name = EXCLUDED.name,
-        type = EXCLUDED.type,
-        distance_meters = EXCLUDED.distance_meters,
-        moving_time_seconds = EXCLUDED.moving_time_seconds,
-        elapsed_time_seconds = EXCLUDED.elapsed_time_seconds,
-        elevation_gain_meters = EXCLUDED.elevation_gain_meters,
-        average_speed = EXCLUDED.average_speed,
-        max_speed = EXCLUDED.max_speed,
-        average_heartrate = EXCLUDED.average_heartrate,
-        max_heartrate = EXCLUDED.max_heartrate,
-        calories = EXCLUDED.calories,
-        description = EXCLUDED.description,
-        average_cadence = EXCLUDED.average_cadence,
-        average_watts = EXCLUDED.average_watts,
-        kudos_count = EXCLUDED.kudos_count,
-        comment_count = EXCLUDED.comment_count,
-        summary_polyline = EXCLUDED.summary_polyline,
-        start_latlng = EXCLUDED.start_latlng,
-        end_latlng = EXCLUDED.end_latlng,
-        start_lat = EXCLUDED.start_lat,
-        start_lng = EXCLUDED.start_lng,
-        end_lat = EXCLUDED.end_lat,
-        end_lng = EXCLUDED.end_lng,
-        geohash = EXCLUDED.geohash,
-        device_name = EXCLUDED.device_name,
-        gear_id = EXCLUDED.gear_id,
-        max_watts = EXCLUDED.max_watts,
-        weighted_average_watts = EXCLUDED.weighted_average_watts,
-        kilojoules = EXCLUDED.kilojoules,
-        suffer_score = EXCLUDED.suffer_score,
-        elev_high = EXCLUDED.elev_high,
-        elev_low = EXCLUDED.elev_low,
-        photos_json = EXCLUDED.photos_json,
-        has_detailed_data = EXCLUDED.has_detailed_data`,
-      [
-        activity.id, activity.userId, activity.name, activity.type,
-        activity.distanceMeters, activity.movingTimeSeconds,
-        activity.elapsedTimeSeconds, activity.elevationGainMeters,
-        activity.startDate, activity.startDateLocal,
-        activity.averageSpeed, activity.maxSpeed,
-        activity.averageHeartrate ?? null, activity.maxHeartrate ?? null,
-        activity.calories ?? null, activity.description ?? null,
-        activity.averageCadence ?? null, activity.averageWatts ?? null,
-        activity.kudosCount ?? 0, activity.commentCount ?? 0,
-        activity.summaryPolyline ?? null,
-        activity.startLatlng ?? null, activity.endLatlng ?? null,
-        coords.startLat, coords.startLng, coords.endLat, coords.endLng, coords.geohash,
-        activity.deviceName ?? null, activity.gearId ?? null,
-        activity.maxWatts ?? null, activity.weightedAverageWatts ?? null,
-        activity.kilojoules ?? null, activity.sufferScore ?? null,
-        activity.elevHigh ?? null, activity.elevLow ?? null,
-        activity.photosJson ?? null, activity.hasDetailedData ?? false,
-      ]
-    );
+    const client = await this.pool.connect();
+    try {
+      await this.upsertActivityWithClient(client, activity);
+    } finally {
+      client.release();
+    }
   }
 
   async upsertActivities(activities: ActivityInput[]): Promise<void> {
@@ -281,68 +214,7 @@ export class PostgresDatabase implements IDatabase {
     try {
       await client.query('BEGIN');
       for (const activity of activities) {
-        const coords = parseCoordinates(activity);
-        await client.query(
-          `INSERT INTO activities (
-            id, user_id, name, type, distance_meters, moving_time_seconds,
-            elapsed_time_seconds, elevation_gain_meters, start_date, start_date_local,
-            average_speed, max_speed, average_heartrate, max_heartrate, calories,
-            description, average_cadence, average_watts, kudos_count, comment_count,
-            summary_polyline, start_latlng, end_latlng,
-            start_lat, start_lng, end_lat, end_lng, geohash,
-            device_name, gear_id, max_watts, weighted_average_watts, kilojoules,
-            suffer_score, elev_high, elev_low, photos_json, has_detailed_data
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-            $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-            $31, $32, $33, $34, $35, $36, $37, $38
-          )
-          ON CONFLICT(id) DO UPDATE SET
-            name = EXCLUDED.name, type = EXCLUDED.type,
-            distance_meters = EXCLUDED.distance_meters,
-            moving_time_seconds = EXCLUDED.moving_time_seconds,
-            elapsed_time_seconds = EXCLUDED.elapsed_time_seconds,
-            elevation_gain_meters = EXCLUDED.elevation_gain_meters,
-            average_speed = EXCLUDED.average_speed, max_speed = EXCLUDED.max_speed,
-            average_heartrate = EXCLUDED.average_heartrate,
-            max_heartrate = EXCLUDED.max_heartrate,
-            calories = EXCLUDED.calories, description = EXCLUDED.description,
-            average_cadence = EXCLUDED.average_cadence,
-            average_watts = EXCLUDED.average_watts,
-            kudos_count = EXCLUDED.kudos_count, comment_count = EXCLUDED.comment_count,
-            summary_polyline = EXCLUDED.summary_polyline,
-            start_latlng = EXCLUDED.start_latlng, end_latlng = EXCLUDED.end_latlng,
-            start_lat = EXCLUDED.start_lat, start_lng = EXCLUDED.start_lng,
-            end_lat = EXCLUDED.end_lat, end_lng = EXCLUDED.end_lng,
-            geohash = EXCLUDED.geohash,
-            device_name = EXCLUDED.device_name, gear_id = EXCLUDED.gear_id,
-            max_watts = EXCLUDED.max_watts,
-            weighted_average_watts = EXCLUDED.weighted_average_watts,
-            kilojoules = EXCLUDED.kilojoules, suffer_score = EXCLUDED.suffer_score,
-            elev_high = EXCLUDED.elev_high, elev_low = EXCLUDED.elev_low,
-            photos_json = EXCLUDED.photos_json,
-            has_detailed_data = EXCLUDED.has_detailed_data`,
-          [
-            activity.id, activity.userId, activity.name, activity.type,
-            activity.distanceMeters, activity.movingTimeSeconds,
-            activity.elapsedTimeSeconds, activity.elevationGainMeters,
-            activity.startDate, activity.startDateLocal,
-            activity.averageSpeed, activity.maxSpeed,
-            activity.averageHeartrate ?? null, activity.maxHeartrate ?? null,
-            activity.calories ?? null, activity.description ?? null,
-            activity.averageCadence ?? null, activity.averageWatts ?? null,
-            activity.kudosCount ?? 0, activity.commentCount ?? 0,
-            activity.summaryPolyline ?? null,
-            activity.startLatlng ?? null, activity.endLatlng ?? null,
-            coords.startLat, coords.startLng, coords.endLat, coords.endLng, coords.geohash,
-            activity.deviceName ?? null, activity.gearId ?? null,
-            activity.maxWatts ?? null, activity.weightedAverageWatts ?? null,
-            activity.kilojoules ?? null, activity.sufferScore ?? null,
-            activity.elevHigh ?? null, activity.elevLow ?? null,
-            activity.photosJson ?? null, activity.hasDetailedData ?? false,
-          ]
-        );
+        await this.upsertActivityWithClient(client, activity);
       }
       await client.query('COMMIT');
     } catch (error) {
@@ -369,7 +241,7 @@ export class PostgresDatabase implements IDatabase {
     if (filters.query?.trim()) {
       const sanitized = filters.query.replace(/['"]/g, '').trim();
       conditions.push(`search_vector @@ to_tsquery('simple', $${paramIdx})`);
-      params.push(sanitized.split(/\s+/).join(' & ') + ':*');
+      params.push(sanitized.split(/\s+/).map(t => t + ':*').join(' & '));
       paramIdx++;
     }
 
