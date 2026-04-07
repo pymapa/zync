@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { SessionStore } from '../services/session/store';
+import type { ISessionStore } from '../services/session/interface';
 import { LRUCache } from '../services/cache/cache';
 import { createHealthRouter } from './health.routes';
 import { createAuthRouter } from './auth.routes';
@@ -13,7 +13,7 @@ import { createAthleteRouter } from './athlete.routes';
 import { createSyncRouter } from './sync.routes';
 
 export function createApiRouter(
-  sessionStore: SessionStore,
+  sessionStore: ISessionStore,
   cache: LRUCache<unknown>
 ): Router {
   const router = Router();

@@ -4,6 +4,123 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  RESOURCE_GROUP: zync-rg
+  CONTAINER_APP: zync-app
+  MIGRATION_JOB: zync-migrate
+
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Login to GHCR
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and push Docker image
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+
+      # Login to Azure
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Update migration job image and run migrations
+      - name: Run database migrations
+        run: |
+          az containerapp job update \
+            --name $MIGRATION_JOB \
+            --resource-group $RESOURCE_GROUP \
+            --image "$IMAGE_NAME:${{ github.sha }}"
+
+          EXECUTION=$(az containerapp job start \
+            --name $MIGRATION_JOB \
+            --resource-group $RESOURCE_GROUP \
+            --query name -o tsv)
+
+          echo "Migration execution: $EXECUTION"
+
+          # Poll until completion (timeout 5 min)
+          for i in $(seq 1 30); do
+            STATUS=$(az containerapp job execution show \
+              --name $MIGRATION_JOB \
+              --resource-group $RESOURCE_GROUP \
+              --job-execution-name "$EXECUTION" \
+              --query properties.status -o tsv 2>/dev/null || echo "Running")
+
+            echo "Status: $STATUS"
+
+            if [ "$STATUS" = "Succeeded" ]; then
+              echo "Migration completed successfully"
+              break
+            elif [ "$STATUS" = "Failed" ]; then
+              echo "Migration failed!"
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          if [ "$STATUS" != "Succeeded" ]; then
+            echo "Migration timed out"
+            exit 1
+          fi
+
+      # Deploy new Container App revision
+      - name: Deploy application
+        run: |
+          az containerapp update \
+            --name $CONTAINER_APP \
+            --resource-group $RESOURCE_GROUP \
+            --image "$IMAGE_NAME:${{ github.sha }}"
+
+      # Health check
+      - name: Health check
+        run: |
+          APP_URL=$(az containerapp show \
+            --name $CONTAINER_APP \
+            --resource-group $RESOURCE_GROUP \
+            --query properties.configuration.ingress.fqdn -o tsv)
+
+          echo "App URL: https://$APP_URL"
+
+          # Wait for the app to start (cold start can take time)
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$APP_URL/api/health" || echo "000")
+            echo "Health check attempt $i: HTTP $STATUS"
+
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed!"
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "Health check failed after all attempts"
+          exit 1

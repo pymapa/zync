@@ -3,7 +3,13 @@
  * Run with: npx ts-node src/scripts/seed.ts
  */
 
+import dotenv from 'dotenv';
 import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), override: true });
+
+import { Pool } from 'pg';
 import { initDatabase, getDatabase, closeDatabase } from '../services/database';
 
 const ACTIVITY_TYPES = ['Run', 'Ride', 'Swim', 'Walk', 'Hike', 'TrailRun', 'MountainBikeRide', 'Workout'];
@@ -146,8 +152,15 @@ function generateActivity(id: number, userId: number, daysAgo: number) {
 }
 
 async function seed() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    console.error('DATABASE_URL is required');
+    process.exit(1);
+  }
+
   console.log('Initializing database...');
-  initDatabase(path.join(process.cwd(), 'data'));
+  const pool = new Pool({ connectionString: databaseUrl });
+  await initDatabase(pool);
 
   const db = getDatabase();
 
@@ -155,9 +168,9 @@ async function seed() {
   const userId = 12345678; // Dummy Strava user ID
 
   console.log('Creating sync status...');
-  let syncStatus = db.getSyncStatus(userId);
+  let syncStatus = await db.getSyncStatus(userId);
   if (!syncStatus) {
-    syncStatus = db.createSyncStatus(userId);
+    syncStatus = await db.createSyncStatus(userId);
   }
 
   // Generate activities for the last 3 years
@@ -182,13 +195,13 @@ async function seed() {
   const batchSize = 100;
   for (let i = 0; i < activities.length; i += batchSize) {
     const batch = activities.slice(i, i + batchSize);
-    db.upsertActivities(batch);
+    await db.upsertActivities(batch);
     process.stdout.write(`\rInserted ${Math.min(i + batchSize, activities.length)}/${activities.length}`);
   }
   console.log('\n');
 
   // Update sync status
-  db.updateSyncStatus(userId, {
+  await db.updateSyncStatus(userId, {
     syncState: 'completed',
     totalActivities: activities.length,
     lastActivityId: activities[0]?.id,
@@ -205,7 +218,8 @@ async function seed() {
     console.log(`  Date range: ${new Date(oldest.startDate).toLocaleDateString()} - ${new Date(newest.startDate).toLocaleDateString()}`);
   }
 
-  closeDatabase();
+  await closeDatabase();
+  await pool.end();
 }
 
 seed().catch((err) => {

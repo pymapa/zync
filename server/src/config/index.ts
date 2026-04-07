@@ -10,6 +10,7 @@ const configSchema = z.object({
   port: z.coerce.number().min(1).max(65535).default(3001),
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
   trustProxy: z.coerce.number().min(0).default(0), // Set to 1 if behind reverse proxy (nginx, load balancer, etc.)
+  databaseUrl: z.string().min(1, 'DATABASE_URL is required'), // PostgreSQL connection string
   strava: z.object({
     clientId: z.string().min(1, 'STRAVA_CLIENT_ID is required'),
     clientSecret: z.string().min(1, 'STRAVA_CLIENT_SECRET is required'),
@@ -44,6 +45,7 @@ function loadConfig(): Config {
       port: process.env.PORT,
       nodeEnv: process.env.NODE_ENV,
       trustProxy: process.env.TRUST_PROXY,
+      databaseUrl: process.env.DATABASE_URL,
       strava: {
         clientId: process.env.STRAVA_CLIENT_ID,
         clientSecret: process.env.STRAVA_CLIENT_SECRET,

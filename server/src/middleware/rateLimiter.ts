@@ -6,7 +6,7 @@
 import rateLimit from 'express-rate-limit';
 import { config } from '../config';
 import { Request } from 'express';
-import { Session } from '../services/session/store';
+import type { Session } from '../services/session/interface';
 
 // Extend Request type to include session
 interface RequestWithSession extends Request {

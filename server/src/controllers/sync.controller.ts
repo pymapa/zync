@@ -76,9 +76,9 @@ export function createSyncController() {
       logger.info('Sync triggered by user', { userId });
 
       // Atomically check and acquire sync lock (prevents TOCTOU)
-      const lockAcquired = tryAcquireSyncLock(userId, SYNC_TIMEOUT_MS);
+      const lockAcquired = await tryAcquireSyncLock(userId, SYNC_TIMEOUT_MS);
       if (!lockAcquired) {
-        const currentStatus = getSyncProgress(userId);
+        const currentStatus = await getSyncProgress(userId);
         logger.warn('Sync already in progress', { userId });
         res.status(409).json({
           message: 'Sync already in progress. Please wait for it to complete.',
@@ -159,7 +159,7 @@ export function createSyncController() {
 
       logger.debug('Fetching sync status', { userId });
 
-      const syncStatus = getSyncProgress(userId);
+      const syncStatus = await getSyncProgress(userId);
 
       const response: SyncStatusResponse = {
         userId,
@@ -205,7 +205,7 @@ export function createSyncController() {
 
       logger.info('Sync reset requested', { userId });
 
-      const wasReset = resetStuckSync(userId, SYNC_TIMEOUT_MS);
+      const wasReset = await resetStuckSync(userId, SYNC_TIMEOUT_MS);
 
       if (wasReset) {
         logger.info('Stuck sync was reset', { userId });
@@ -216,7 +216,7 @@ export function createSyncController() {
         });
       } else {
         // Check current state
-        const currentStatus = getSyncProgress(userId);
+        const currentStatus = await getSyncProgress(userId);
         const isSyncing = currentStatus?.syncState === 'syncing';
 
         if (isSyncing) {

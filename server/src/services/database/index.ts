@@ -2,10 +2,10 @@
  * Database module entry point
  *
  * Exports database interface and creates singleton instance.
- * To swap DBMS, replace SQLiteDatabase with another IDatabase implementation.
  */
 
-import { SQLiteDatabase } from './sqlite';
+import { Pool } from 'pg';
+import { PostgresDatabase } from './postgres';
 import type { IDatabase } from './interface';
 
 // Re-export types and interface for consumers
@@ -37,12 +37,19 @@ let db: IDatabase | null = null;
  * Initialize the database
  * Call this once at application startup
  */
-export function initDatabase(dataDir?: string): void {
+export async function initDatabase(pool: Pool): Promise<void> {
   if (db) {
     throw new Error('Database already initialized');
   }
-  db = new SQLiteDatabase(dataDir);
-  db.init();
+  db = new PostgresDatabase(pool);
+  await db.init();
+}
+
+/**
+ * Inject a database instance directly (for testing only)
+ */
+export function _setDatabaseForTesting(database: IDatabase): void {
+  db = database;
 }
 
 /**
@@ -60,9 +67,9 @@ export function getDatabase(): IDatabase {
  * Close the database connection
  * Call this on application shutdown
  */
-export function closeDatabase(): void {
+export async function closeDatabase(): Promise<void> {
   if (db) {
-    db.close();
+    await db.close();
     db = null;
   }
 }

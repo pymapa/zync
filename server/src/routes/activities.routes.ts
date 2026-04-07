@@ -3,14 +3,14 @@
  */
 
 import { Router } from 'express';
-import { SessionStore } from '../services/session/store';
+import type { ISessionStore } from '../services/session/interface';
 import { LRUCache } from '../services/cache/cache';
 import { createActivitiesController } from '../controllers/activities.controller';
 import { createAuthMiddleware } from '../middleware/auth';
 import { userRateLimiter } from '../middleware/rateLimiter';
 
 export function createActivitiesRouter(
-  sessionStore: SessionStore,
+  sessionStore: ISessionStore,
   cache: LRUCache<unknown>
 ): Router {
   const router = Router();

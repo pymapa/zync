@@ -17,6 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Never skip or disable broken tests.** Always fix the underlying issue or update the test assertions to match current behavior. No `.skip`, `.todo`, or commenting out tests.
 - **Always use the `session-manager` agent** at the start of every work session to create a session, during work to track progress, and when wrapping up to run tests, review, commit, and create a PR. Follow the session workflow — no work without a session.
+- **Add out-of-scope items to `BACKLOG.md`** — when you discover bugs, improvements, or tasks that are unrelated to the current session's scope, add them to `BACKLOG.md` at the project root. The session-manager agent is responsible for this.
 
 ---
 
