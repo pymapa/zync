@@ -1,4 +1,5 @@
 subscription_id      = "your-azure-subscription-id"
+database_url         = "postgresql://user:pass@ep-xxx.region.neon.tech/dbname?sslmode=require"
 ghcr_image           = "ghcr.io/your-user/zync:latest"
 strava_client_id     = "your-strava-client-id"
 strava_client_secret = "your-strava-client-secret"

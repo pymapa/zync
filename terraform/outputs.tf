@@ -18,8 +18,3 @@ output "resource_group_name" {
   value       = azurerm_resource_group.main.name
 }
 
-output "db_private_ip" {
-  description = "Database VM private IP"
-  value       = azurerm_network_interface.db.private_ip_address
-  sensitive   = true
-}

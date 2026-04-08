@@ -15,16 +15,10 @@ variable "project" {
   default     = "zync"
 }
 
-variable "vm_admin_username" {
-  description = "Admin username for the database VM"
+variable "database_url" {
+  description = "PostgreSQL connection string (e.g. Neon)"
   type        = string
-  default     = "azureuser"
-}
-
-variable "ssh_public_key_path" {
-  description = "Path to SSH public key for VM access"
-  type        = string
-  default     = "~/.ssh/id_rsa.pub"
+  sensitive   = true
 }
 
 variable "ghcr_image" {

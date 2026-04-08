@@ -1,11 +1,9 @@
 # Container Apps Environment (in apps subnet)
 resource "azurerm_container_app_environment" "main" {
-  name                           = "${local.name_prefix}-cae"
-  location                       = azurerm_resource_group.main.location
-  resource_group_name            = azurerm_resource_group.main.name
-  infrastructure_subnet_id       = azurerm_subnet.apps.id
-  internal_load_balancer_enabled = false
-  tags                           = local.common_tags
+  name                = "${local.name_prefix}-cae"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  tags                = local.common_tags
 }
 
 # Container App — main application
@@ -78,7 +76,7 @@ resource "azurerm_container_app" "main" {
 
   secret {
     name  = "database-url"
-    value = "postgresql://zync:${random_password.db_password.result}@${azurerm_network_interface.db.private_ip_address}:5432/zync"
+    value = var.database_url
   }
 
   secret {
@@ -114,7 +112,7 @@ resource "azurerm_container_app_job" "migration" {
 
   secret {
     name  = "database-url"
-    value = "postgresql://zync:${random_password.db_password.result}@${azurerm_network_interface.db.private_ip_address}:5432/zync"
+    value = var.database_url
   }
 
   template {
