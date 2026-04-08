@@ -25,7 +25,7 @@ export default function Login() {
     setIsLoggingIn(true);
     setError(null);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      const apiUrl = import.meta.env.VITE_API_URL || `${window.location.origin}/api`;
       const redirectUri = `${apiUrl}/auth/strava/callback`;
       const { url } = await authApi.getAuthUrl(redirectUri);
       console.log('Redirecting to auth URL:', url);
