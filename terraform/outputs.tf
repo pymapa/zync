@@ -8,11 +8,6 @@ output "container_app_name" {
   value       = azurerm_container_app.main.name
 }
 
-output "migration_job_name" {
-  description = "Migration job name (for GHA trigger)"
-  value       = azurerm_container_app_job.migration.name
-}
-
 output "resource_group_name" {
   description = "Resource group name"
   value       = azurerm_resource_group.main.name
