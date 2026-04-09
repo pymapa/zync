@@ -13,7 +13,6 @@ env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
   RESOURCE_GROUP: zync-rg
   CONTAINER_APP: zync-app
-  MIGRATION_JOB: zync-migrate
 
 jobs:
   ci:
@@ -50,48 +49,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Update migration job image and run migrations
-      - name: Run database migrations
-        run: |
-          az containerapp job update \
-            --name $MIGRATION_JOB \
-            --resource-group $RESOURCE_GROUP \
-            --image "$IMAGE_NAME:${{ github.sha }}"
-
-          EXECUTION=$(az containerapp job start \
-            --name $MIGRATION_JOB \
-            --resource-group $RESOURCE_GROUP \
-            --query name -o tsv)
-
-          echo "Migration execution: $EXECUTION"
-
-          # Poll until completion (timeout 5 min)
-          for i in $(seq 1 30); do
-            STATUS=$(az containerapp job execution show \
-              --name $MIGRATION_JOB \
-              --resource-group $RESOURCE_GROUP \
-              --job-execution-name "$EXECUTION" \
-              --query properties.status -o tsv 2>/dev/null || echo "Running")
-
-            echo "Status: $STATUS"
-
-            if [ "$STATUS" = "Succeeded" ]; then
-              echo "Migration completed successfully"
-              break
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "Migration failed!"
-              exit 1
-            fi
-
-            sleep 10
-          done
-
-          if [ "$STATUS" != "Succeeded" ]; then
-            echo "Migration timed out"
-            exit 1
-          fi
-
-      # Deploy new Container App revision
+      # Deploy new Container App revision (migrations run automatically on startup)
       - name: Deploy application
         run: |
           az containerapp update \
